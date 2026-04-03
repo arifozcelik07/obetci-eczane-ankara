@@ -36,21 +36,16 @@ function parseIlIlce(input) {
   return { il: parts[0] || "", ilce: "" };
 }
 
-// CollectAPI: dutyPharmacy (Vite proxy üzerinden)
-const COLLECTAPI_APIKEY = "4q1ZMO4lF6Yw7CROtq8xBj:4aSRD0VrbbbRod52SQeKva";
-const COLLECTAPI_BASE = "/api/collect/health";
+// CollectAPI: Vercel ortaminda dogrudan API cagri
+const COLLECTAPI_APIKEY = import.meta.env.VITE_COLLECTAPI_KEY;
 
-async function fetchDutyPharmacies({ il, ilce }) {
-  const params = new URLSearchParams();
-  params.set("il", il);
-  if (ilce) params.set("ilce", ilce);
-
-  const url = `${COLLECTAPI_BASE}/dutyPharmacy?${params.toString()}`;
+async function fetchDutyPharmacies() {
+  const url = "https://api.collectapi.com/health/dutyPharmacy?city=ankara";
 
   const res = await fetch(url, {
     method: "GET",
     headers: {
-      authorization: `apikey ${COLLECTAPI_APIKEY}`,
+      authorization: COLLECTAPI_APIKEY,
       "content-type": "application/json",
     },
   });
