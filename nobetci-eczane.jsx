@@ -96,6 +96,27 @@ function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect,
   const hasVoted = userVote === "yes" || userVote === "no";
   const hasUserLoc = userLocation && Number.isFinite(userLocation.lat);
 
+  // 📞 ARAMA MOTORU
+  const handleCall = (e, phone) => {
+    e.stopPropagation(); 
+    if (!phone) return;
+    const cleanedPhone = phone.replace(/\D/g, ''); 
+    window.location.href = `tel:${cleanedPhone}`;
+  };
+
+  // 💬 WHATSAPP MOTORU
+  const handleWhatsApp = (e, phone) => {
+    e.stopPropagation(); 
+    if (!phone) return;
+    let cleanedPhone = phone.replace(/\D/g, '');
+    if (cleanedPhone.startsWith('0')) {
+      cleanedPhone = '90' + cleanedPhone.substring(1);
+    } else if (!cleanedPhone.startsWith('90')) {
+      cleanedPhone = '90' + cleanedPhone;
+    }
+    window.open(`https://wa.me/${cleanedPhone}`, '_blank');
+  };
+
   const openExternalNavigation = (provider) => {
     if (!hasUserLoc) { onToast("⚠️ Önce konumunuzu almalısınız."); return; }
     const googleMode = travelMode === "walk" ? "walking" : travelMode === "bus" ? "transit" : "driving";
@@ -135,8 +156,8 @@ function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect,
       </div>
       
       <div className="flex gap-1.5 mb-3 w-full">
-        <button onClick={(e) => { e.stopPropagation(); onToast("📞 " + p.phone + " aranıyor..."); }} className="flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-green-500/10 border border-green-500/35 text-green-400 hover:bg-green-500 hover:text-white transition-all">Hemen Ara</button>
-        <button onClick={(e) => { e.stopPropagation(); onToast("💬 WhatsApp açılıyor..."); }} className="flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all">WhatsApp</button>
+        <button onClick={(e) => handleCall(e, p.phone)} className="flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-green-500/10 border border-green-500/35 text-green-400 hover:bg-green-500 hover:text-white transition-all">Hemen Ara</button>
+        <button onClick={(e) => handleWhatsApp(e, p.phone)} className="flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all">WhatsApp</button>
       </div>
 
       <div className="bg-gray-950 border border-gray-700 rounded-xl p-3 w-full mb-3">
@@ -237,10 +258,8 @@ export default function App() {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3500); };
 
-  // OTOMATİK KONUM VE İLK VERİ ATEŞLEME
   useEffect(() => {
-    //performSearch("Ankara");
-    handleLocate(); // Site açılınca direkt konumu sor
+    handleLocate(); 
     fetch("https://turkiyeapi.dev/api/v1/provinces")
       .then(res => res.json()).then(data => {
         if (data?.data) {
@@ -257,7 +276,6 @@ export default function App() {
     setLocating(true);
     if (!navigator.geolocation) { showToast("GPS desteklenmiyor."); setLocating(false); return; }
     
-    // YENİ: Tek seferlik konum yerine sürekli takip başlatalım
     const watchId = navigator.geolocation.watchPosition((pos) => {
       setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       if (!autoFocusedRef.current) { autoFocusedRef.current = true; setFocusToUserSeq(v => v + 1); }
@@ -314,7 +332,6 @@ export default function App() {
       }
       return { ...p, badgeText, distanceKm, distanceText: distanceKm ? `Sana ${distanceKm.toFixed(1)} km uzaklıkta` : "" };
     });
-    // Sıralama logic'i: Konum varsa mesafeye, yoksa isme göre
     mapped.sort((a, b) => {
       if (sortType === "distance" && userLocation) return (a.distanceKm - b.distanceKm);
       return a.name.localeCompare(b.name, "tr");
