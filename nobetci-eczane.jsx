@@ -335,28 +335,30 @@ export default function App() {
       .catch(err => console.log("Yerel veri çekilemedi", err));
   }, []);
 
-// 2. KULLANICI YAZDIKÇA ÇALIŞAN FONKSiYON (GÜNCELLENDİ)
+// 2. KULLANICI YAZDIKÇA ÇALIŞAN FONKSiYON (TAM SENKRONiZE VERSiYON)
 const handleSearchInput = (e) => {
   const val = e.target.value;
   setSearchVal(val);
   
-  // YENİ ÖZELLİK: EĞER KUTUYU TAMAMEN SİLDİYSE
+  // EĞER KUTU BOŞALTILDIYSA (Kullanıcı X'e bastı veya sildi)
   if (val === "") {
     setShowSuggestions(false);
-    setActiveId(null); // Varsa seçili eczanenin mavi ışığını kapat
+    setActiveId(null);
     
+    // 1. Önce listeyi varsayılan şehre (Ankara) geri döndür ve veriyi tazele
+    performSearch("Ankara"); 
+    
+    // 2. Haritayı kullanıcıya odakla
     if (userLocation) {
-      // Zaten GPS konumu biliniyorsa direkt haritayı oraya kaydır
       setFocusToUserSeq(v => v + 1);
-      setSortType("distance"); // Sıralamayı otomatiğe (mesafeye) çek
+      setSortType("distance"); 
     } else {
-      // Konumu henüz alınmadıysa GPS'i tetikle
-      handleLocate(); 
+      handleLocate(); // Konum kapalıysa tekrar iste
     }
-    return; // İşlemi burada kes, aşağıdaki arama kodlarına inmesin
+    return; 
   }
 
-  // NORMAL ARAMA İŞLEMİ (Eskisi gibi)
+  // NORMAL ARAMA ÖNERiLERi
   if (val.trim().length > 1) {
     const lowerVal = val.toLocaleLowerCase('tr-TR');
     const matches = allLocations.filter(l => l.label.toLocaleLowerCase('tr-TR').includes(lowerVal)).slice(0, 15);
