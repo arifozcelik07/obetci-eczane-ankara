@@ -96,7 +96,6 @@ function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect,
   const hasVoted = userVote === "yes" || userVote === "no";
   const hasUserLoc = userLocation && Number.isFinite(userLocation.lat);
 
-  // 📞 ARAMA MOTORU
   const handleCall = (e, phone) => {
     e.stopPropagation(); 
     if (!phone) return;
@@ -104,7 +103,6 @@ function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect,
     window.location.href = `tel:${cleanedPhone}`;
   };
 
-  // 💬 WHATSAPP MOTORU
   const handleWhatsApp = (e, phone) => {
     e.stopPropagation(); 
     if (!phone) return;
@@ -190,7 +188,6 @@ function LeafletMapView({ pharmacies, activeId, onSelect, travelMode, userLocati
   const containerRef = useRef(null); const mapRef = useRef(null); const leafletRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const markersRef = useRef([]); const userMarkerRef = useRef(null); const routingControlRef = useRef(null);
-  const [routeInfo, setRouteInfo] = useState(null);
 
   useEffect(() => {
     const init = async () => {
@@ -239,6 +236,10 @@ export default function App() {
   const [activeId, setActiveId] = useState(null);
   const [travelModes, setTravelModes] = useState({});
   const [userLocation, setUserLocation] = useState(null);
+  
+  // 🚀 YENİ: Kullanıcının gerçek şehrini hafızada tutuyoruz
+  const [userCity, setUserCity] = useState(""); 
+  
   const [focusToUserSeq, setFocusToUserSeq] = useState(0);
   const [loadingPharmacies, setLoadingPharmacies] = useState(false);
   const [apiError, setApiError] = useState("");
@@ -272,6 +273,8 @@ export default function App() {
       });
   }, []);
 
+  const autoFocusedRef = useRef(false);
+
   const handleLocate = () => {
     setLocating(true);
     if (!navigator.geolocation) { showToast("GPS desteklenmiyor."); setLocating(false); return; }
@@ -281,24 +284,20 @@ export default function App() {
       const lng = pos.coords.longitude;
       setUserLocation({ lat, lng });
       
-      // SADECE İLK AÇILIŞTA OTOMATİK ARAMA YAP (Sürekli API'yi yormamak için)
       if (!autoFocusedRef.current) { 
         autoFocusedRef.current = true; 
         setFocusToUserSeq(v => v + 1); 
         
         try {
-          // 1. GPS Koordinatlarını Şehir ismine çeviren ücretsiz tercüman
           const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=tr`);
           const geo = await res.json();
-          
-          // 2. Gelen veriden İli bul (Örn: "Ankara" veya "Antalya")
           let sehir = geo.city || geo.principalSubdivision || "";
           sehir = sehir.replace(" Province", "").replace(" İli", "").trim();
           
-          // 3. Şehri bulduysak motoru ateşle!
           if(sehir) {
-            setSearchVal(sehir);     // Arama kutusuna yaz
-            performSearch(sehir);    // Eczaneleri listeye dök!
+            setUserCity(sehir);   // Hafızaya aldık!
+            setSearchVal(sehir);     
+            performSearch(sehir);    
           }
         } catch (error) {
           showToast("Şehir otomatik bulunamadı, lütfen elinizle yazın.");
@@ -312,11 +311,22 @@ export default function App() {
     
     return () => navigator.geolocation.clearWatch(watchId);
   };
-  const autoFocusedRef = useRef(false);
 
   const handleSearchInput = (e) => {
     const val = e.target.value; setSearchVal(val);
-    if (val === "") { setShowSuggestions(false); setActiveId(null); return; }
+    
+    // 🚀 YENİ: Kutu temizlendiğinde kendi şehrimize geri dön!
+    if (val === "") { 
+      setShowSuggestions(false); 
+      setActiveId(null); 
+      if (userCity) {
+        performSearch(userCity);
+      } else {
+        setPharmacies([]);
+      }
+      return; 
+    }
+    
     if (val.trim().length > 1) {
       const lowerVal = val.toLocaleLowerCase('tr-TR');
       setSuggestions(allLocations.filter(l => l.label.toLocaleLowerCase('tr-TR').includes(lowerVal)).slice(0, 15));
@@ -377,7 +387,12 @@ export default function App() {
               {suggestions.map((s, i) => <li key={i} onClick={() => { setSearchVal(s.label); performSearch(s.label); }} className="px-3 py-2.5 text-xs text-gray-300 hover:bg-blue-600 hover:text-white cursor-pointer border-b border-gray-700 last:border-none transition-colors">📍 {s.label}</li>)}
             </ul>
           )}
-          <button onClick={() => { handleLocate(); setFocusToUserSeq(v => v + 1); }} className={`h-9 px-3 rounded-lg text-sm flex items-center justify-center border shrink-0 transition-all ${userLocation ? "bg-blue-600 border-blue-500" : "bg-gray-800 border-gray-700 animate-pulse"}`}>📍</button>
+          
+          {/* 🚀 YENİ: GPS Butonuna da hafızayı bağladık */}
+          <button onClick={() => { 
+            if(userCity) { setSearchVal(userCity); performSearch(userCity); }
+            setFocusToUserSeq(v => v + 1); 
+          }} className={`h-9 px-3 rounded-lg text-sm flex items-center justify-center border shrink-0 transition-all ${userLocation ? "bg-blue-600 border-blue-500" : "bg-gray-800 border-gray-700 animate-pulse"}`}>📍</button>
         </div>
       </div>
 
