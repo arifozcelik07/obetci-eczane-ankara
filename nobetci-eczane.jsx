@@ -5,9 +5,7 @@ function calcDistanceKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.asin(Math.sqrt(a));
 }
 
@@ -75,11 +73,6 @@ async function ensureLeafletLoaded() {
       const script = document.createElement("script"); script.src = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"; script.async = true; script.defer = true; script.setAttribute("data-lrm-js", "true"); script.onload = resolve; script.onerror = reject; document.body.appendChild(script);
     });
   }
-  window.L.Icon.Default.mergeOptions({
-    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  });
   return window.L;
 }
 
@@ -93,7 +86,7 @@ function Toast({ msg }) {
 
 function TravelChip({ icon, label, selected, onClick }) {
   return (
-    <button onClick={onClick} className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold border transition-all ${selected ? "bg-blue-500/20 border-blue-500 text-blue-300" : "bg-gray-800 border-gray-700 text-gray-400 hover:border-blue-500/50"}`}>
+    <button onClick={onClick} className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[10px] md:text-xs font-semibold border transition-all ${selected ? "bg-blue-500/20 border-blue-500 text-blue-300" : "bg-gray-800 border-gray-700 text-gray-400 hover:border-blue-500/50"}`}>
       <span>{icon}</span> {label}
     </button>
   );
@@ -104,7 +97,7 @@ function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect,
   const hasUserLoc = userLocation && Number.isFinite(userLocation.lat);
 
   const openExternalNavigation = (provider) => {
-    if (!hasUserLoc) { onToast("Önce konumunuzu alın."); return; }
+    if (!hasUserLoc) { onToast("⚠️ Önce konumunuzu almalısınız."); return; }
     const googleMode = travelMode === "walk" ? "walking" : travelMode === "bus" ? "transit" : "driving";
     const appleMode = travelMode === "walk" ? "w" : travelMode === "bus" ? "r" : "d";
     const origin = `${userLocation.lat},${userLocation.lng}`;
@@ -113,51 +106,50 @@ function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect,
       ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=${googleMode}` 
       : `https://maps.apple.com/?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(destination)}&dirflg=${appleMode}`;
     window.open(url, "_blank", "noopener,noreferrer");
-    onToast(provider === "google" ? "Google Haritalar açılıyor..." : "Apple Haritalar açılıyor...");
+    onToast("Haritalar açılıyor...");
   };
 
   return (
-    <div onClick={() => onSelect(p.id)} className={`relative rounded-2xl p-3 md:p-4 mb-2 md:mb-3 cursor-pointer border transition-all overflow-hidden group w-full ${active ? "bg-gray-800 border-blue-500" : "bg-gray-900 border-gray-700 hover:border-blue-500/60 hover:bg-gray-800"}`}>
+    <div onClick={() => onSelect(p.id)} className={`relative rounded-2xl p-3 md:p-4 mb-2 md:mb-3 cursor-pointer border transition-all overflow-hidden group w-full ${active ? "bg-gray-800 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.1)]" : "bg-gray-900 border-gray-700 hover:border-blue-500/60 hover:bg-gray-800"}`}>
       {active && <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-violet-500" />}
       
-      {/* YENİ: Teyit Rozeti - Aksiyon hissi veren kısım */}
       {userVote === "yes" && (
         <div className="confirm-badge absolute top-2 right-2 flex items-center gap-1 bg-green-500/20 border border-green-500/40 px-2 py-0.5 rounded-full z-10 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
-          <span className="text-green-400 text-[10px] font-extrabold uppercase">✓ Teyit Edildi</span>
+          <span className="text-green-400 text-[9px] md:text-[10px] font-extrabold uppercase">✓ TEYİT EDİLDİ</span>
         </div>
       )}
 
       <div className="flex items-start justify-between mb-2 w-full pt-1">
-        <div className="font-bold text-white text-sm leading-snug flex-1 mr-2 break-words">💊 {p.name}</div>
-        <span className="bg-blue-500/15 border border-blue-500/40 text-blue-300 text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 whitespace-nowrap">{p.badgeText || p.dist || "—"}</span>
+        <div className="font-bold text-white text-sm md:text-base leading-snug flex-1 mr-2 break-words">💊 {p.name}</div>
+        <span className="bg-blue-500/15 border border-blue-500/40 text-blue-300 text-[10px] md:text-xs font-bold px-2 py-1 rounded-lg shrink-0 whitespace-nowrap">{p.badgeText}</span>
       </div>
 
       <p className="text-xs text-gray-400 mb-1.5 leading-relaxed break-words">📍 {p.addr}</p>
       <p className="text-xs text-blue-400 font-semibold mb-3">📞 {p.phone}</p>
-      {p.distanceText ? <p className="text-[11px] text-violet-300 font-semibold mb-2">📏 {p.distanceText}</p> : null}
+      {p.distanceText ? <p className="text-[11px] text-violet-300 font-bold mb-2">📏 {p.distanceText}</p> : null}
       
       <div className="flex gap-1.5 mb-3 w-full">
-        <TravelChip icon="🚶" label="Yaya" selected={travelMode === "walk"} onClick={(e) => { e.stopPropagation(); onTravelChange("walk"); onSelect(p.id); onToast("🚶 Yaya rotası çiziliyor..."); }} />
-        <TravelChip icon="🚗" label="Araç" selected={travelMode === "car"} onClick={(e) => { e.stopPropagation(); onTravelChange("car"); onSelect(p.id); onToast("🚗 Araç rotası çiziliyor..."); }} />
-        <TravelChip icon="🚌" label="Otobüs" selected={travelMode === "bus"} onClick={(e) => { e.stopPropagation(); onTravelChange("bus"); onSelect(p.id); onToast("🚌 Otobüs rotası..."); }} />
+        <TravelChip icon="🚶" label="Yaya" selected={travelMode === "walk"} onClick={(e) => { e.stopPropagation(); onTravelChange("walk"); onSelect(p.id); }} />
+        <TravelChip icon="🚗" label="Araç" selected={travelMode === "car"} onClick={(e) => { e.stopPropagation(); onTravelChange("car"); onSelect(p.id); }} />
+        <TravelChip icon="🚌" label="Otobüs" selected={travelMode === "bus"} onClick={(e) => { e.stopPropagation(); onTravelChange("bus"); onSelect(p.id); }} />
       </div>
       
       <div className="flex gap-1.5 mb-3 w-full">
-        <button onClick={(e) => { e.stopPropagation(); onToast("📞 " + p.phone + " aranıyor..."); }} className="flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-green-500/10 border border-green-500/35 text-green-400 hover:bg-green-500 hover:text-white transition-all">📞 Hemen Ara</button>
-        <button onClick={(e) => { e.stopPropagation(); onToast("💬 WhatsApp..."); }} className="flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all">💬 WhatsApp</button>
+        <button onClick={(e) => { e.stopPropagation(); onToast("📞 " + p.phone + " aranıyor..."); }} className="flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-green-500/10 border border-green-500/35 text-green-400 hover:bg-green-500 hover:text-white transition-all">Hemen Ara</button>
+        <button onClick={(e) => { e.stopPropagation(); onToast("💬 WhatsApp açılıyor..."); }} className="flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all">WhatsApp</button>
       </div>
 
-      <div className="bg-gray-950 border border-gray-700 rounded-xl p-3 w-full">
-        <p className="text-[11px] text-gray-400 font-medium mb-2">📍 Şu an buradasın, eczane açık mı?</p>
+      <div className="bg-gray-950 border border-gray-700 rounded-xl p-3 w-full mb-3">
+        <p className="text-[10px] md:text-[11px] text-gray-400 font-medium mb-2">Açık mı? Teyit ederek başkalarına yardımcı ol.</p>
         <div className="flex gap-2">
-          <button onClick={(e) => { e.stopPropagation(); onVote("yes"); }} className={`flex-1 h-7 rounded-lg text-xs font-bold transition-all border flex items-center justify-center gap-1 ${userVote === "yes" ? "bg-green-500 border-green-500 text-white" : "bg-green-500/10 border-green-500/35 text-green-400 hover:bg-green-500 hover:text-white"}`}>✓ Evet</button>
-          <button onClick={(e) => { e.stopPropagation(); onVote("no"); }} className={`flex-1 h-7 rounded-lg text-xs font-bold transition-all border flex items-center justify-center gap-1 ${userVote === "no" ? "bg-red-500 border-red-500 text-white" : "bg-red-500/10 border-red-500/35 text-red-400 hover:bg-red-500 hover:text-white"}`}>✗ Hayır</button>
+          <button onClick={(e) => { e.stopPropagation(); onVote("yes"); }} className={`flex-1 h-7 rounded-lg text-xs font-bold transition-all border ${userVote === "yes" ? "bg-green-500 border-green-500 text-white shadow-lg" : "bg-green-500/10 border-green-500/35 text-green-400"}`}>Evet, Açık</button>
+          <button onClick={(e) => { e.stopPropagation(); onVote("no"); }} className={`flex-1 h-7 rounded-lg text-xs font-bold transition-all border ${userVote === "no" ? "bg-red-500 border-red-500 text-white" : "bg-red-500/10 border-red-500/35 text-red-400"}`}>Hayır</button>
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-        <button onClick={(e) => { e.stopPropagation(); openExternalNavigation("google"); }} className="h-11 rounded-xl text-xs md:text-sm font-extrabold flex items-center justify-center gap-2 bg-blue-600 border border-blue-500 text-white hover:bg-blue-500 transition-all w-full">🗺 Google</button>
-        <button onClick={(e) => { e.stopPropagation(); openExternalNavigation("apple"); }} className="h-11 rounded-xl text-xs md:text-sm font-extrabold flex items-center justify-center gap-2 bg-slate-700 border border-slate-500 text-white hover:bg-slate-600 transition-all w-full">🍎 Apple</button>
+      <div className="grid grid-cols-2 gap-2 w-full">
+        <button onClick={(e) => { e.stopPropagation(); openExternalNavigation("google"); }} className="h-10 rounded-xl text-[11px] md:text-xs font-extrabold flex items-center justify-center gap-2 bg-blue-600 border border-blue-500 text-white">🗺 Google</button>
+        <button onClick={(e) => { e.stopPropagation(); openExternalNavigation("apple"); }} className="h-10 rounded-xl text-[11px] md:text-xs font-extrabold flex items-center justify-center gap-2 bg-slate-700 border border-slate-500 text-white">🍎 Apple</button>
       </div>
     </div>
   );
@@ -168,10 +160,10 @@ function LeafletMapView({ pharmacies, activeId, onSelect, travelMode, userLocati
     useEffect(() => {
       if (!map) return;
       const run = () => map.invalidateSize(); run();
-      const raf = requestAnimationFrame(run); const t = setTimeout(run, 120);
+      const raf = requestAnimationFrame(run);
       let ro = null; if (containerEl && typeof ResizeObserver !== "undefined") { ro = new ResizeObserver(() => run()); ro.observe(containerEl); }
-      return () => { cancelAnimationFrame(raf); clearTimeout(t); if (ro) ro.disconnect(); };
-    });
+      return () => { cancelAnimationFrame(raf); if (ro) ro.disconnect(); };
+    }, [map, containerEl]);
     return null;
   }
   const containerRef = useRef(null); const mapRef = useRef(null); const leafletRef = useRef(null);
@@ -180,68 +172,43 @@ function LeafletMapView({ pharmacies, activeId, onSelect, travelMode, userLocati
   const [routeInfo, setRouteInfo] = useState(null);
 
   useEffect(() => {
-    let cancelled = false;
     const init = async () => {
       try {
-        const L = await ensureLeafletLoaded(); if (cancelled || !L) return;
-        leafletRef.current = L; const map = L.map(containerRef.current, { zoomControl: true }).setView([39.9334, 32.8597], 12);
+        const L = await ensureLeafletLoaded(); leafletRef.current = L;
+        const map = L.map(containerRef.current, { zoomControl: true }).setView([39.9334, 32.8597], 12);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '© OSM' }).addTo(map);
-        mapRef.current = map; setMapReady(true); setTimeout(() => map.invalidateSize(), 0);
-      } catch { if (!cancelled) onToast?.("Harita yüklenemedi."); }
+        mapRef.current = map; setMapReady(true);
+      } catch { onToast?.("Harita yüklenemedi."); }
     };
     init();
-    return () => { cancelled = true; try { if (mapRef.current) mapRef.current.remove(); } catch {} };
+    return () => { if (mapRef.current) mapRef.current.remove(); };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current; const L = leafletRef.current; if (!map || !L) return;
-    markersRef.current.forEach((m) => { try { map.removeLayer(m); } catch {} }); markersRef.current = [];
+    markersRef.current.forEach(m => map.removeLayer(m)); markersRef.current = [];
     pharmacies.forEach((p) => {
-      if (!Number.isFinite(p.lat)) return;
       const isActive = p.id === activeId; const color = isActive ? "#60a5fa" : "#3b82f6";
-      const html = `<div style="width:30px;height:30px;border-radius:15px;background:rgba(59,130,246,0.18);border:2px solid ${color};display:flex;align-items:center;justify-content:center;color:${color};font-weight:900;box-shadow:0 10px 24px rgba(0,0,0,0.25);">💊</div>`;
-      const icon = L.divIcon({ html, className: "", iconSize: [30, 30], iconAnchor: [15, 15] });
+      const icon = L.divIcon({ html: `<div style="width:30px;height:30px;border-radius:15px;background:rgba(59,130,246,0.18);border:2px solid ${color};display:flex;align-items:center;justify-content:center;color:${color};font-weight:900;">💊</div>`, className: "", iconSize: [30, 30], iconAnchor: [15, 15] });
       const marker = L.marker([p.lat, p.lng], { icon }).addTo(map);
       marker.on("click", () => onSelect(p.id)); marker.bindTooltip(p.name, { direction: "top", offset: [0, -10] });
       markersRef.current.push(marker);
     });
-    if (userMarkerRef.current) { try { map.removeLayer(userMarkerRef.current); } catch {} }
-    if (userLocation && Number.isFinite(userLocation.lat)) {
+    
+    if (userMarkerRef.current) map.removeLayer(userMarkerRef.current);
+    if (userLocation?.lat) {
       const userIcon = L.divIcon({ className: "", html: `<div class="user-live-wrapper"><div class="user-live-ring"></div><div class="user-live-dot"></div></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
       userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon }).addTo(map);
+      userMarkerRef.current.bindTooltip("SİZ", { permanent: true, direction: "top", offset: [0, -10] });
     }
-    const active = pharmacies.find((p) => p.id === activeId); const bounds = [];
-    if (userLocation) bounds.push([userLocation.lat, userLocation.lng]);
-    if (active?.lat) bounds.push([active.lat, active.lng]);
-    if (bounds.length >= 2) map.fitBounds(bounds, { padding: [20, 20] });
-  }, [pharmacies, activeId, userLocation, onSelect]);
+  }, [pharmacies, activeId, userLocation]);
 
-  useEffect(() => { if (mapRef.current && userLocation?.lat) mapRef.current.setView([userLocation.lat, userLocation.lng], 15); }, [focusToUserSeq]);
-
-  useEffect(() => {
-    const map = mapRef.current; const L = leafletRef.current; if (!map || !L || !activeId || !userLocation) return;
-    const active = pharmacies.find((p) => p.id === activeId); if (!active || !L.Routing) return;
-    if (routingControlRef.current) { try { map.removeControl(routingControlRef.current); } catch {} }
-    const isWalk = travelMode === "walk"; const serviceUrl = isWalk ? "https://router.project-osrm.org/route/v1/foot" : "https://router.project-osrm.org/route/v1/driving";
-    const control = L.Routing.control({
-      waypoints: [ L.latLng(userLocation.lat, userLocation.lng), L.latLng(active.lat, active.lng) ],
-      router: L.Routing.osrmv1({ serviceUrl, profile: "" }), addWaypoints: false, draggableWaypoints: false, show: false, createMarker: () => null,
-      lineOptions: { styles: isWalk ? [{ color: "#16a34a", weight: 5, dashArray: "10, 8" }] : [{ color: "#2563eb", weight: 7 }] },
-    }).addTo(map);
-    control.on("routesfound", (e) => { const r = e.routes[0]; setRouteInfo({ durationMin: Math.round(r.summary.totalTime/60), distKm: (r.summary.totalDistance/1000).toFixed(1) }); });
-    routingControlRef.current = control;
-    return () => { if (routingControlRef.current) try { map.removeControl(routingControlRef.current); } catch {} };
-  }, [activeId, travelMode, userLocation]);
+  useEffect(() => { if (mapRef.current && userLocation?.lat) mapRef.current.setView([userLocation.lat, userLocation.lng], 15, { animate: true }); }, [focusToUserSeq]);
 
   return (
     <div className="relative w-full h-[500px] md:h-full bg-gray-950 flex-1">
       <div ref={containerRef} className="w-full h-full bg-gray-950" />
       {mapReady ? <MapResizer map={mapRef.current} containerEl={containerRef.current} /> : null}
-      {routeInfo && (
-        <div className="absolute top-3 right-3 z-[500] bg-gray-900/90 border border-blue-500/35 text-blue-200 text-xs font-semibold px-3 py-2 rounded-xl backdrop-blur-sm shadow-lg">
-          <div>🧭 {routeInfo.durationMin} dk | {routeInfo.distKm} km</div>
-        </div>
-      )}
     </div>
   );
 }
@@ -263,7 +230,6 @@ export default function App() {
   const [sortType, setSortType] = useState("distance");
   const [locating, setLocating] = useState(false);
   
-  // YENİ: Hafızalı Oylama State'i
   const [userVotes, setUserVotes] = useState(() => {
     const saved = localStorage.getItem("nobetci_eczane_votes");
     return saved ? JSON.parse(saved) : {};
@@ -271,7 +237,10 @@ export default function App() {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3500); };
 
+  // OTOMATİK KONUM VE İLK VERİ ATEŞLEME
   useEffect(() => {
+    performSearch("Ankara");
+    handleLocate(); // Site açılınca direkt konumu sor
     fetch("https://turkiyeapi.dev/api/v1/provinces")
       .then(res => res.json()).then(data => {
         if (data?.data) {
@@ -284,7 +253,23 @@ export default function App() {
       });
   }, []);
 
-  useEffect(() => { performSearch("Ankara"); }, []);
+  const handleLocate = () => {
+    setLocating(true);
+    if (!navigator.geolocation) { showToast("GPS desteklenmiyor."); setLocating(false); return; }
+    
+    // YENİ: Tek seferlik konum yerine sürekli takip başlatalım
+    const watchId = navigator.geolocation.watchPosition((pos) => {
+      setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      if (!autoFocusedRef.current) { autoFocusedRef.current = true; setFocusToUserSeq(v => v + 1); }
+      setLocating(false);
+    }, (err) => {
+      setLocating(false);
+      if (err.code === 1) showToast("⚠️ Lütfen konum izni verin (Mesafe için şart)");
+    }, { enableHighAccuracy: true, timeout: 10000 });
+    
+    return () => navigator.geolocation.clearWatch(watchId);
+  };
+  const autoFocusedRef = useRef(false);
 
   const handleSearchInput = (e) => {
     const val = e.target.value; setSearchVal(val);
@@ -309,15 +294,6 @@ export default function App() {
     } catch { setApiError("Hata oluştu"); } finally { setLoadingPharmacies(false); }
   };
 
-  const handleLocate = () => {
-    setLocating(true); showToast("📍 Konum alınıyor...");
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      setFocusToUserSeq(v => v + 1); setLocating(false); setSortType("distance"); showToast("✅ Konum alındı!");
-    }, () => { setLocating(false); showToast("İzin verin"); });
-  };
-
-  // YENİ: Oylamayı Hafızaya Kaydeden Fonksiyon
   const handleVote = (id, type) => {
     if (userVotes[id]) { showToast("Zaten oy kullandınız"); return; }
     const newVotes = { ...userVotes, [id]: type };
@@ -331,56 +307,68 @@ export default function App() {
   const pharmaciesView = useMemo(() => {
     let mapped = pharmacies.map((p) => {
       let distanceKm = null; let badgeText = p.dist || "—";
-      if (userLocation && p.lat) { const km = calcDistanceKm(userLocation.lat, userLocation.lng, p.lat, p.lng); distanceKm = km; badgeText = `${km.toFixed(1)} km`; }
-      return { ...p, badgeText, distanceKm, distanceText: distanceKm ? `Size ${distanceKm.toFixed(1)} km` : "" };
+      if (userLocation && p.lat) { 
+        const km = calcDistanceKm(userLocation.lat, userLocation.lng, p.lat, p.lng); 
+        distanceKm = km; 
+        badgeText = `${km.toFixed(1)} km`; 
+      }
+      return { ...p, badgeText, distanceKm, distanceText: distanceKm ? `Sana ${distanceKm.toFixed(1)} km uzaklıkta` : "" };
     });
-    mapped.sort((a, b) => sortType === "name" ? a.name.localeCompare(b.name, "tr") : (a.distanceKm - b.distanceKm));
+    // Sıralama logic'i: Konum varsa mesafeye, yoksa isme göre
+    mapped.sort((a, b) => {
+      if (sortType === "distance" && userLocation) return (a.distanceKm - b.distanceKm);
+      return a.name.localeCompare(b.name, "tr");
+    });
     return mapped;
   }, [pharmacies, userLocation, sortType]);
 
   return (
     <div className="flex flex-col h-[100dvh] bg-gray-950 text-white font-sans overflow-hidden w-full max-w-[100vw]">
-      <div className="bg-gray-900 border-b border-gray-800 p-2 flex items-center gap-2 shrink-0 z-50 w-full">
+      <div className="bg-gray-900 border-b border-gray-800 p-2 flex items-center gap-2 shrink-0 z-50 w-full shadow-lg">
         <div className="flex-1 flex items-center gap-1.5 relative min-w-0">
-          <div className="flex-1 flex items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-lg px-2 h-8 relative min-w-0">
+          <div className="flex-1 flex items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-lg px-2 h-9 relative min-w-0">
             <span className="text-gray-500 text-xs shrink-0">🔍</span>
-            <input value={searchVal} onChange={handleSearchInput} onFocus={() => searchVal.length > 1 && setShowSuggestions(true)} onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} className="flex-1 bg-transparent text-xs text-white outline-none w-full" placeholder="İl/İlçe Ara..."/>
+            <input value={searchVal} onChange={handleSearchInput} onFocus={() => searchVal.length > 1 && setShowSuggestions(true)} onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} className="flex-1 bg-transparent text-xs text-white outline-none w-full" placeholder="İl veya İlçe Ara (Örn: Çankaya)"/>
           </div>
           {showSuggestions && suggestions.length > 0 && (
-            <ul className="absolute top-10 left-0 w-full bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-[9999] max-h-60 overflow-y-auto">
-              {suggestions.map((s, i) => <li key={i} onClick={() => { setSearchVal(s.label); performSearch(s.label); }} className="px-3 py-2 text-xs text-gray-300 hover:bg-blue-600 hover:text-white cursor-pointer border-b border-gray-700 last:border-none">📍 {s.label}</li>)}
+            <ul className="absolute top-11 left-0 w-full bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-[9999] max-h-60 overflow-y-auto border-t-0 rounded-t-none">
+              {suggestions.map((s, i) => <li key={i} onClick={() => { setSearchVal(s.label); performSearch(s.label); }} className="px-3 py-2.5 text-xs text-gray-300 hover:bg-blue-600 hover:text-white cursor-pointer border-b border-gray-700 last:border-none transition-colors">📍 {s.label}</li>)}
             </ul>
           )}
-          <button onClick={handleLocate} className={`h-8 px-2.5 rounded-lg text-xs font-bold flex items-center justify-center border shrink-0 ${locating ? "bg-blue-600 border-blue-600 text-white" : "bg-blue-500/10 border-blue-500 text-blue-400"}`}>📍</button>
+          <button onClick={() => { handleLocate(); setFocusToUserSeq(v => v + 1); }} className={`h-9 px-3 rounded-lg text-sm flex items-center justify-center border shrink-0 transition-all ${userLocation ? "bg-blue-600 border-blue-500" : "bg-gray-800 border-gray-700 animate-pulse"}`}>📍</button>
         </div>
       </div>
 
-      <div className="bg-green-500/8 border-b border-green-500/20 px-2 py-1.5 flex items-center gap-2 shrink-0">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
-        <span className="text-green-400 text-[10px] font-medium">Canlı Veri — CollectAPI</span>
+      <div className="bg-blue-500/5 border-b border-blue-500/20 px-3 py-1.5 flex items-center gap-2 shrink-0">
+        <span className={`w-2 h-2 rounded-full ${userLocation ? "bg-green-400" : "bg-yellow-400 animate-pulse"} shrink-0`} />
+        <span className="text-blue-200 text-[10px] font-bold uppercase tracking-wider">{userLocation ? "GPS AKTİF" : "GPS ARANIYOR..."}</span>
       </div>
 
       <div className="relative flex-1 flex flex-col md:flex-row overflow-hidden w-full">
         {view !== "list" && (
-          <div className="flex-1 w-full overflow-hidden z-0 flex flex-col">
+          <div className="flex-1 w-full overflow-hidden z-0 flex flex-col relative">
             <LeafletMapView pharmacies={pharmaciesView} activeId={activeId} onSelect={handleSelect} travelMode={activeId ? travelModes[activeId] || "walk" : "walk"} userLocation={userLocation} focusToUserSeq={focusToUserSeq} onToast={showToast} />
+            <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2">
+              <button onClick={() => setView(view === "split" ? "map" : "split")} className="p-2 bg-gray-900/90 rounded-lg border border-gray-700 text-xs hidden md:block">🖥 Görünümü Değiştir</button>
+            </div>
           </div>
         )}
         {view !== "map" && (
-          <div className="fixed bottom-0 left-0 right-0 z-[700] bg-gray-900/95 border-t border-gray-800 flex flex-col overflow-hidden h-[45vh] md:static md:h-full md:w-96 w-full">
-            <div className="px-3 py-2 border-b border-gray-800 flex items-center justify-between bg-gray-900/95 z-10 shrink-0">
-              <span className="text-xs font-bold">💊 {pharmaciesView.length} Eczane</span>
-              <select value={sortType} onChange={(e) => setSortType(e.target.value)} className="bg-gray-800 border border-gray-700 rounded-lg text-gray-400 text-[10px] px-2 py-1 outline-none">
-                <option value="distance">En yakın</option>
-                <option value="name">Alfabetik</option>
+          <div className="fixed bottom-0 left-0 right-0 z-[700] bg-gray-900/98 border-t border-gray-800 flex flex-col overflow-hidden h-[45vh] md:static md:h-full md:w-96 w-full shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+            <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between bg-gray-900/98 z-10 shrink-0">
+              <span className="text-sm font-extrabold text-blue-300">{pharmaciesView.length} ECZANE</span>
+              <select value={sortType} onChange={(e) => setSortType(e.target.value)} className="bg-gray-800 border border-gray-700 rounded-lg text-gray-300 text-[10px] px-2 py-1.5 outline-none font-bold">
+                <option value="distance">MESAFEYE GÖRE</option>
+                <option value="name">A'DAN Z'YE</option>
               </select>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 pb-6 w-full">
+            <div className="flex-1 overflow-y-auto p-2 pb-10 w-full scroll-smooth">
               {pharmaciesView.map((p) => (
                 <div id={"card-" + p.id} key={p.id} className="w-full">
                   <PharmacyCard p={p} active={activeId === p.id} travelMode={travelModes[p.id] || "walk"} userVote={userVotes[p.id]} userLocation={userLocation} onSelect={handleSelect} onTravelChange={(mode) => setTravelModes(t => ({ ...t, [p.id]: mode }))} onVote={(type) => handleVote(p.id, type)} onToast={showToast} />
                 </div>
               ))}
+              {pharmaciesView.length === 0 && !loadingPharmacies && <div className="p-10 text-center text-gray-500 text-xs">Aradığınız bölgede nöbetçi bulunamadı.</div>}
             </div>
           </div>
         )}
