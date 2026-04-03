@@ -13,13 +13,9 @@ function calcDistanceKm(lat1, lon1, lat2, lon2) {
 
 function parseLoc(loc) {
   if (!loc) return null;
-  const parts = String(loc)
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const parts = String(loc).split(",").map((s) => s.trim()).filter(Boolean);
   if (parts.length !== 2) return null;
-  const lat = Number(parts[0]);
-  const lng = Number(parts[1]);
+  const lat = Number(parts[0]); const lng = Number(parts[1]);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return { lat, lng };
 }
@@ -34,78 +30,56 @@ function parseIlIlce(input) {
 async function fetchDutyPharmacies(il, ilce) {
   let url = `https://api.collectapi.com/health/dutyPharmacy?il=${encodeURIComponent(il)}`;
   if (ilce) url += `&ilce=${encodeURIComponent(ilce)}`;
-
   const res = await fetch(url, {
     method: "GET",
-    headers: {
-      authorization: "apikey " + import.meta.env.VITE_COLLECTAPI_KEY,
-      "content-type": "application/json",
-    },
+    headers: { authorization: "apikey " + import.meta.env.VITE_COLLECTAPI_KEY, "content-type": "application/json" },
   });
-
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || data?.success !== true) {
-    throw new Error(data?.message || data?.error?.message || `CollectAPI hatası (HTTP ${res.status})`);
-  }
-
+  if (!res.ok || data?.success !== true) throw new Error("API Hatası");
   return Array.isArray(data?.result) ? data.result : [];
 }
 
 async function ensureLeafletLoaded() {
   if (typeof window === "undefined") return null;
   if (window.L && window.L.map) return window.L;
-
   const cssHref = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
   const jsSrc = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-
   if (!document.querySelector('link[data-leaflet-css="true"]')) {
-    const link = document.createElement("link");
-    link.rel = "stylesheet"; link.href = cssHref; link.setAttribute("data-leaflet-css", "true");
-    document.head.appendChild(link);
+    const link = document.createElement("link"); link.rel = "stylesheet"; link.href = cssHref; link.setAttribute("data-leaflet-css", "true"); document.head.appendChild(link);
   }
-
   if (!document.querySelector('script[data-leaflet-js="true"]')) {
     await new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = jsSrc; script.async = true; script.defer = true; script.setAttribute("data-leaflet-js", "true");
-      script.onload = resolve; script.onerror = reject; document.body.appendChild(script);
+      const script = document.createElement("script"); script.src = jsSrc; script.async = true; script.defer = true; script.setAttribute("data-leaflet-js", "true"); script.onload = resolve; script.onerror = reject; document.body.appendChild(script);
     });
   }
-
   if (!window.L || !window.L.map) throw new Error("Leaflet yüklenemedi.");
-
+  
   if (!document.querySelector('style[data-user-live-pulse="true"]')) {
-    const style = document.createElement("style");
-    style.setAttribute("data-user-live-pulse", "true");
+    const style = document.createElement("style"); style.setAttribute("data-user-live-pulse", "true");
     style.textContent = `
       @keyframes userLivePulse { 0% { transform: scale(0.6); opacity: 0.95; } 70% { transform: scale(1.8); opacity: 0.08; } 100% { transform: scale(2.1); opacity: 0; } }
       .user-live-wrapper { position: relative; width: 22px; height: 22px; }
       .user-live-ring { position: absolute; inset: 0; border-radius: 9999px; background: rgba(59, 130, 246, 0.28); animation: userLivePulse 1.8s ease-out infinite; }
       .user-live-dot { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%); border-radius: 9999px; background: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22); }
+      @keyframes confirmPop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+      .confirm-badge { animation: confirmPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
     `;
     document.head.appendChild(style);
   }
 
   if (!document.querySelector('link[data-lrm-css="true"]')) {
-    const link = document.createElement("link");
-    link.rel = "stylesheet"; link.href = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"; link.setAttribute("data-lrm-css", "true");
-    document.head.appendChild(link);
+    const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"; link.setAttribute("data-lrm-css", "true"); document.head.appendChild(link);
   }
-
   if (!document.querySelector('script[data-lrm-js="true"]')) {
     await new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"; script.async = true; script.defer = true; script.setAttribute("data-lrm-js", "true");
-      script.onload = resolve; script.onerror = reject; document.body.appendChild(script);
+      const script = document.createElement("script"); script.src = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"; script.async = true; script.defer = true; script.setAttribute("data-lrm-js", "true"); script.onload = resolve; script.onerror = reject; document.body.appendChild(script);
     });
   }
-
   window.L.Icon.Default.mergeOptions({
     iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
     iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
     shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
   });
-
   return window.L;
 }
 
@@ -127,32 +101,37 @@ function TravelChip({ icon, label, selected, onClick }) {
 
 function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect, onTravelChange, onVote, onToast }) {
   const hasVoted = userVote === "yes" || userVote === "no";
-  const hasUserLoc = userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng);
+  const hasUserLoc = userLocation && Number.isFinite(userLocation.lat);
 
   const openExternalNavigation = (provider) => {
     if (!hasUserLoc) { onToast("Önce konumunuzu alın."); return; }
-    
     const googleMode = travelMode === "walk" ? "walking" : travelMode === "bus" ? "transit" : "driving";
     const appleMode = travelMode === "walk" ? "w" : travelMode === "bus" ? "r" : "d";
-    
     const origin = `${userLocation.lat},${userLocation.lng}`;
     const destination = `${p.lat},${p.lng}`;
-    
     const url = provider === "google" 
       ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=${googleMode}` 
       : `https://maps.apple.com/?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(destination)}&dirflg=${appleMode}`;
-      
     window.open(url, "_blank", "noopener,noreferrer");
-    onToast(provider === "google" ? "Google Haritalar'da açılıyor..." : "Apple Haritalar'da açılıyor...");
+    onToast(provider === "google" ? "Google Haritalar açılıyor..." : "Apple Haritalar açılıyor...");
   };
 
   return (
     <div onClick={() => onSelect(p.id)} className={`relative rounded-2xl p-3 md:p-4 mb-2 md:mb-3 cursor-pointer border transition-all overflow-hidden group w-full ${active ? "bg-gray-800 border-blue-500" : "bg-gray-900 border-gray-700 hover:border-blue-500/60 hover:bg-gray-800"}`}>
       {active && <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-violet-500" />}
-      <div className="flex items-start justify-between mb-2 w-full">
+      
+      {/* YENİ: Teyit Rozeti - Aksiyon hissi veren kısım */}
+      {userVote === "yes" && (
+        <div className="confirm-badge absolute top-2 right-2 flex items-center gap-1 bg-green-500/20 border border-green-500/40 px-2 py-0.5 rounded-full z-10 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+          <span className="text-green-400 text-[10px] font-extrabold uppercase">✓ Teyit Edildi</span>
+        </div>
+      )}
+
+      <div className="flex items-start justify-between mb-2 w-full pt-1">
         <div className="font-bold text-white text-sm leading-snug flex-1 mr-2 break-words">💊 {p.name}</div>
         <span className="bg-blue-500/15 border border-blue-500/40 text-blue-300 text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 whitespace-nowrap">{p.badgeText || p.dist || "—"}</span>
       </div>
+
       <p className="text-xs text-gray-400 mb-1.5 leading-relaxed break-words">📍 {p.addr}</p>
       <p className="text-xs text-blue-400 font-semibold mb-3">📞 {p.phone}</p>
       {p.distanceText ? <p className="text-[11px] text-violet-300 font-semibold mb-2">📏 {p.distanceText}</p> : null}
@@ -160,16 +139,16 @@ function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect,
       <div className="flex gap-1.5 mb-3 w-full">
         <TravelChip icon="🚶" label="Yaya" selected={travelMode === "walk"} onClick={(e) => { e.stopPropagation(); onTravelChange("walk"); onSelect(p.id); onToast("🚶 Yaya rotası çiziliyor..."); }} />
         <TravelChip icon="🚗" label="Araç" selected={travelMode === "car"} onClick={(e) => { e.stopPropagation(); onTravelChange("car"); onSelect(p.id); onToast("🚗 Araç rotası çiziliyor..."); }} />
-        <TravelChip icon="🚌" label="Otobüs" selected={travelMode === "bus"} onClick={(e) => { e.stopPropagation(); onTravelChange("bus"); onSelect(p.id); onToast("🚌 Otobüs rotası çiziliyor..."); }} />
+        <TravelChip icon="🚌" label="Otobüs" selected={travelMode === "bus"} onClick={(e) => { e.stopPropagation(); onTravelChange("bus"); onSelect(p.id); onToast("🚌 Otobüs rotası..."); }} />
       </div>
       
       <div className="flex gap-1.5 mb-3 w-full">
         <button onClick={(e) => { e.stopPropagation(); onToast("📞 " + p.phone + " aranıyor..."); }} className="flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-green-500/10 border border-green-500/35 text-green-400 hover:bg-green-500 hover:text-white transition-all">📞 Hemen Ara</button>
-        <button onClick={(e) => { e.stopPropagation(); onToast("💬 WhatsApp açılıyor..."); }} className="flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all">💬 WhatsApp</button>
+        <button onClick={(e) => { e.stopPropagation(); onToast("💬 WhatsApp..."); }} className="flex-1 h-9 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all">💬 WhatsApp</button>
       </div>
 
       <div className="bg-gray-950 border border-gray-700 rounded-xl p-3 w-full">
-        <p className="text-[11px] md:text-xs text-gray-400 font-medium mb-2">📍 Şu an buradasın, eczane açık mı?</p>
+        <p className="text-[11px] text-gray-400 font-medium mb-2">📍 Şu an buradasın, eczane açık mı?</p>
         <div className="flex gap-2">
           <button onClick={(e) => { e.stopPropagation(); onVote("yes"); }} className={`flex-1 h-7 rounded-lg text-xs font-bold transition-all border flex items-center justify-center gap-1 ${userVote === "yes" ? "bg-green-500 border-green-500 text-white" : "bg-green-500/10 border-green-500/35 text-green-400 hover:bg-green-500 hover:text-white"}`}>✓ Evet</button>
           <button onClick={(e) => { e.stopPropagation(); onVote("no"); }} className={`flex-1 h-7 rounded-lg text-xs font-bold transition-all border flex items-center justify-center gap-1 ${userVote === "no" ? "bg-red-500 border-red-500 text-white" : "bg-red-500/10 border-red-500/35 text-red-400 hover:bg-red-500 hover:text-white"}`}>✗ Hayır</button>
@@ -177,8 +156,8 @@ function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect,
       </div>
 
       <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-        <button onClick={(e) => { e.stopPropagation(); openExternalNavigation("google"); }} className="h-11 rounded-xl text-xs md:text-sm font-extrabold flex items-center justify-center gap-2 bg-blue-600 border border-blue-500 text-white hover:bg-blue-500 transition-all w-full">🗺 Google Haritalar</button>
-        <button onClick={(e) => { e.stopPropagation(); openExternalNavigation("apple"); }} className="h-11 rounded-xl text-xs md:text-sm font-extrabold flex items-center justify-center gap-2 bg-slate-700 border border-slate-500 text-white hover:bg-slate-600 transition-all w-full">🍎 Apple Haritalar</button>
+        <button onClick={(e) => { e.stopPropagation(); openExternalNavigation("google"); }} className="h-11 rounded-xl text-xs md:text-sm font-extrabold flex items-center justify-center gap-2 bg-blue-600 border border-blue-500 text-white hover:bg-blue-500 transition-all w-full">🗺 Google</button>
+        <button onClick={(e) => { e.stopPropagation(); openExternalNavigation("apple"); }} className="h-11 rounded-xl text-xs md:text-sm font-extrabold flex items-center justify-center gap-2 bg-slate-700 border border-slate-500 text-white hover:bg-slate-600 transition-all w-full">🍎 Apple</button>
       </div>
     </div>
   );
@@ -195,97 +174,74 @@ function LeafletMapView({ pharmacies, activeId, onSelect, travelMode, userLocati
     });
     return null;
   }
-
   const containerRef = useRef(null); const mapRef = useRef(null); const leafletRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const markersRef = useRef([]); const userMarkerRef = useRef(null); const routingControlRef = useRef(null);
-  const lastNoLocationToastRef = useRef(0); const [routeInfo, setRouteInfo] = useState(null);
+  const [routeInfo, setRouteInfo] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     const init = async () => {
       try {
         const L = await ensureLeafletLoaded(); if (cancelled || !L) return;
-        leafletRef.current = L;
-        const defaultCenter = [39.9334, 32.8597];
-        const map = L.map(containerRef.current, { zoomControl: true }).setView(defaultCenter, 12);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '© OpenStreetMap contributors' }).addTo(map);
+        leafletRef.current = L; const map = L.map(containerRef.current, { zoomControl: true }).setView([39.9334, 32.8597], 12);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '© OSM' }).addTo(map);
         mapRef.current = map; setMapReady(true); setTimeout(() => map.invalidateSize(), 0);
       } catch { if (!cancelled) onToast?.("Harita yüklenemedi."); }
     };
     init();
-    return () => { cancelled = true; try { if (mapRef.current) mapRef.current.remove(); } catch {} mapRef.current = null; leafletRef.current = null; markersRef.current = []; userMarkerRef.current = null; routingControlRef.current = null; };
+    return () => { cancelled = true; try { if (mapRef.current) mapRef.current.remove(); } catch {} };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current; const L = leafletRef.current; if (!map || !L) return;
     markersRef.current.forEach((m) => { try { map.removeLayer(m); } catch {} }); markersRef.current = [];
-
     pharmacies.forEach((p) => {
-      if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
-      const isActive = p.id === activeId; const color = isActive ? "#60a5fa" : "#3b82f6"; const bg = isActive ? "rgba(96,165,250,0.25)" : "rgba(59,130,246,0.18)";
-      const html = `<div style="width:30px;height:30px;border-radius:15px;background:${bg};border:2px solid ${color};display:flex;align-items:center;justify-content:center;color:${color};font-weight:900;box-shadow:0 10px 24px rgba(0,0,0,0.25);">💊</div>`;
+      if (!Number.isFinite(p.lat)) return;
+      const isActive = p.id === activeId; const color = isActive ? "#60a5fa" : "#3b82f6";
+      const html = `<div style="width:30px;height:30px;border-radius:15px;background:rgba(59,130,246,0.18);border:2px solid ${color};display:flex;align-items:center;justify-content:center;color:${color};font-weight:900;box-shadow:0 10px 24px rgba(0,0,0,0.25);">💊</div>`;
       const icon = L.divIcon({ html, className: "", iconSize: [30, 30], iconAnchor: [15, 15] });
       const marker = L.marker([p.lat, p.lng], { icon }).addTo(map);
       marker.on("click", () => onSelect(p.id)); marker.bindTooltip(p.name, { direction: "top", offset: [0, -10] });
       markersRef.current.push(marker);
     });
-
-    if (userMarkerRef.current) { try { map.removeLayer(userMarkerRef.current); } catch {} } userMarkerRef.current = null;
-    if (userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng)) {
+    if (userMarkerRef.current) { try { map.removeLayer(userMarkerRef.current); } catch {} }
+    if (userLocation && Number.isFinite(userLocation.lat)) {
       const userIcon = L.divIcon({ className: "", html: `<div class="user-live-wrapper"><div class="user-live-ring"></div><div class="user-live-dot"></div></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
       userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon }).addTo(map);
-      userMarkerRef.current.bindTooltip("SİZ", { permanent: true, direction: "top", offset: [0, -10] });
     }
-
     const active = pharmacies.find((p) => p.id === activeId); const bounds = [];
     if (userLocation) bounds.push([userLocation.lat, userLocation.lng]);
-    if (active?.lat && active?.lng) bounds.push([active.lat, active.lng]);
-    if (bounds.length >= 2) map.fitBounds(bounds, { padding: [20, 20] }); else if (bounds.length === 1) map.setView(bounds[0], 13);
-    setTimeout(() => map.invalidateSize(), 0);
+    if (active?.lat) bounds.push([active.lat, active.lng]);
+    if (bounds.length >= 2) map.fitBounds(bounds, { padding: [20, 20] });
   }, [pharmacies, activeId, userLocation, onSelect]);
 
-  useEffect(() => {
-    const map = mapRef.current; if (!map || !userLocation || !Number.isFinite(userLocation.lat)) return;
-    map.setView([userLocation.lat, userLocation.lng], Math.max(map.getZoom(), 15), { animate: true });
-  }, [focusToUserSeq, userLocation]);
+  useEffect(() => { if (mapRef.current && userLocation?.lat) mapRef.current.setView([userLocation.lat, userLocation.lng], 15); }, [focusToUserSeq]);
 
   useEffect(() => {
-    const map = mapRef.current; const L = leafletRef.current; if (!map || !L) return;
-    const active = pharmacies.find((p) => p.id === activeId); if (!active) return;
-    if (!userLocation || !Number.isFinite(userLocation.lat)) {
-      const now = Date.now(); if (now - lastNoLocationToastRef.current > 30000) { lastNoLocationToastRef.current = now; onToast?.("Rota çizmek için önce konumunuzu alın."); } return;
-    }
-    if (!L.Routing || !L.Routing.control) return;
-    if (routingControlRef.current) { try { map.removeControl(routingControlRef.current); } catch {} routingControlRef.current = null; }
-    setRouteInfo(null);
-
+    const map = mapRef.current; const L = leafletRef.current; if (!map || !L || !activeId || !userLocation) return;
+    const active = pharmacies.find((p) => p.id === activeId); if (!active || !L.Routing) return;
+    if (routingControlRef.current) { try { map.removeControl(routingControlRef.current); } catch {} }
     const isWalk = travelMode === "walk"; const serviceUrl = isWalk ? "https://router.project-osrm.org/route/v1/foot" : "https://router.project-osrm.org/route/v1/driving";
     const control = L.Routing.control({
       waypoints: [ L.latLng(userLocation.lat, userLocation.lng), L.latLng(active.lat, active.lng) ],
-      router: L.Routing.osrmv1({ serviceUrl, profile: "" }), addWaypoints: false, draggableWaypoints: false, routeWhileDragging: false, fitSelectedRoutes: true, show: false, createMarker: () => null,
-      lineOptions: { styles: isWalk ? [{ color: "#16a34a", opacity: 0.95, weight: 5, dashArray: "10, 8" }] : [{ color: "#2563eb", opacity: 0.98, weight: 7 }] },
+      router: L.Routing.osrmv1({ serviceUrl, profile: "" }), addWaypoints: false, draggableWaypoints: false, show: false, createMarker: () => null,
+      lineOptions: { styles: isWalk ? [{ color: "#16a34a", weight: 5, dashArray: "10, 8" }] : [{ color: "#2563eb", weight: 7 }] },
     }).addTo(map);
-
-    control.on("routesfound", (e) => {
-      const route = e?.routes?.[0]; if (!route?.summary) { setRouteInfo(null); return; }
-      setRouteInfo({ durationMin: Math.max(1, Math.round(route.summary.totalTime / 60)), distKm: (route.summary.totalDistance / 1000).toFixed(1) });
-    });
-    control.on("routingerror", () => { setRouteInfo(null); onToast?.("Rota alınamadı."); });
+    control.on("routesfound", (e) => { const r = e.routes[0]; setRouteInfo({ durationMin: Math.round(r.summary.totalTime/60), distKm: (r.summary.totalDistance/1000).toFixed(1) }); });
     routingControlRef.current = control;
-    return () => { if (routingControlRef.current) { try { map.removeControl(routingControlRef.current); } catch {} routingControlRef.current = null; } };
-  }, [pharmacies, activeId, travelMode, userLocation, onToast]);
+    return () => { if (routingControlRef.current) try { map.removeControl(routingControlRef.current); } catch {} };
+  }, [activeId, travelMode, userLocation]);
 
   return (
     <div className="relative w-full h-[500px] md:h-full bg-gray-950 flex-1">
       <div ref={containerRef} className="w-full h-full bg-gray-950" />
       {mapReady ? <MapResizer map={mapRef.current} containerEl={containerRef.current} /> : null}
-      {routeInfo ? (
+      {routeInfo && (
         <div className="absolute top-3 right-3 z-[500] bg-gray-900/90 border border-blue-500/35 text-blue-200 text-xs font-semibold px-3 py-2 rounded-xl backdrop-blur-sm shadow-lg">
-          <div>🧭 {routeInfo.durationMin} dakikada varabilirsiniz</div>
-          <div className="text-[11px] text-gray-300 mt-0.5">Mesafe: {routeInfo.distKm} km</div>
+          <div>🧭 {routeInfo.durationMin} dk | {routeInfo.distKm} km</div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -294,203 +250,135 @@ export default function App() {
   const [pharmacies, setPharmacies] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [travelModes, setTravelModes] = useState({});
-  const [userVotes, setUserVotes] = useState({});
   const [userLocation, setUserLocation] = useState(null);
   const [focusToUserSeq, setFocusToUserSeq] = useState(0);
   const [loadingPharmacies, setLoadingPharmacies] = useState(false);
   const [apiError, setApiError] = useState("");
-
   const [toast, setToast] = useState("");
   const [view, setView] = useState("split");
-  
   const [searchVal, setSearchVal] = useState("");
   const [allLocations, setAllLocations] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  
   const [sortType, setSortType] = useState("distance");
   const [locating, setLocating] = useState(false);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
-  const autoFocusedRef = useRef(false);
-  useEffect(() => {
-    performSearch("Ankara");
-  }, []);
+  
+  // YENİ: Hafızalı Oylama State'i
+  const [userVotes, setUserVotes] = useState(() => {
+    const saved = localStorage.getItem("nobetci_eczane_votes");
+    return saved ? JSON.parse(saved) : {};
+  });
+
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3500); };
 
   useEffect(() => {
     fetch("https://turkiyeapi.dev/api/v1/provinces")
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
-          const locs = [];
-          data.data.forEach(city => {
+      .then(res => res.json()).then(data => {
+        if (data?.data) {
+          const locs = []; data.data.forEach(city => {
             locs.push({ label: city.name, il: city.name, ilce: "" });
-            if (city.districts) {
-              city.districts.forEach(dist => {
-                locs.push({ label: `${city.name}, ${dist.name}`, il: city.name, ilce: dist.name });
-              });
-            }
+            city.districts?.forEach(dist => locs.push({ label: `${city.name}, ${dist.name}`, il: city.name, ilce: dist.name }));
           });
           setAllLocations(locs);
         }
-      }).catch(err => console.log("Yerel veri çekilemedi", err));
+      });
   }, []);
 
-  const handleSearchInput = (e) => {
-    const val = e.target.value;
-    setSearchVal(val);
-    
-    if (val === "") {
-      setShowSuggestions(false);
-      setActiveId(null);
-      performSearch("Ankara"); 
-      if (userLocation) {
-        setFocusToUserSeq(v => v + 1);
-        setSortType("distance"); 
-      } else {
-        handleLocate(); 
-      }
-      return; 
-    }
+  useEffect(() => { performSearch("Ankara"); }, []);
 
+  const handleSearchInput = (e) => {
+    const val = e.target.value; setSearchVal(val);
+    if (val === "") { setShowSuggestions(false); setActiveId(null); performSearch("Ankara"); return; }
     if (val.trim().length > 1) {
       const lowerVal = val.toLocaleLowerCase('tr-TR');
-      const matches = allLocations.filter(l => l.label.toLocaleLowerCase('tr-TR').includes(lowerVal)).slice(0, 15);
-      setSuggestions(matches);
+      setSuggestions(allLocations.filter(l => l.label.toLocaleLowerCase('tr-TR').includes(lowerVal)).slice(0, 15));
       setShowSuggestions(true);
-    } else {
-      setShowSuggestions(false);
-    }
+    } else setShowSuggestions(false);
   };
 
   const performSearch = async (queryVal = searchVal) => {
-    const { il, ilce } = parseIlIlce(queryVal);
-    if (!il) { showToast("Lütfen geçerli bir il veya ilçe seçin."); return; }
-
+    const { il, ilce } = parseIlIlce(queryVal); if (!il) return;
     setLoadingPharmacies(true); setApiError(""); setShowSuggestions(false);
     try {
       const data = await fetchDutyPharmacies(il, ilce);
       const mapped = data.map((x) => {
-        const coords = parseLoc(x.loc);
-        if (!coords) return null;
-        const rawId = x.loc || `${x.name}-${x.address}`;
-        return { id: String(rawId).replace(/[^a-zA-Z0-9_-]/g, "_"), name: x.name || "Eczane", addr: x.address || "", phone: x.phone || "", dist: x.dist || "", lat: coords.lat, lng: coords.lng };
+        const coords = parseLoc(x.loc); if (!coords) return null;
+        return { id: String(x.loc || x.name).replace(/[^a-zA-Z0-9_-]/g, "_"), name: x.name, addr: x.address, phone: x.phone, dist: x.dist, lat: coords.lat, lng: coords.lng };
       }).filter(Boolean);
-
-      setPharmacies(mapped); setApiError(mapped.length ? "" : "Sonuç bulunamadı."); setLastUpdatedAt(Date.now()); setActiveId(null);
-    } catch (e) { setPharmacies([]); setApiError(e?.message || "API hatası oluştu."); setActiveId(null); } finally { setLoadingPharmacies(false); }
+      setPharmacies(mapped); setActiveId(null);
+    } catch { setApiError("Hata oluştu"); } finally { setLoadingPharmacies(false); }
   };
-
-  useEffect(() => { if (!navigator.geolocation) return undefined; const watchId = navigator.geolocation.watchPosition((pos) => { const next = { lat: pos.coords.latitude, lng: pos.coords.longitude }; setUserLocation(next); if (!autoFocusedRef.current) { autoFocusedRef.current = true; setFocusToUserSeq((v) => v + 1); } }, () => {}, { enableHighAccuracy: true, timeout: 12000, maximumAge: 3000 }); return () => navigator.geolocation.clearWatch(watchId); }, []);
 
   const handleLocate = () => {
-    setLocating(true); showToast("📍 GPS konumu alınıyor...");
-    if (!navigator.geolocation) { setLocating(false); showToast("Bu tarayıcı GPS’i desteklemiyor."); return; }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setFocusToUserSeq((v) => v + 1); setLocating(false); setSortType("distance"); showToast("✅ Konum başarıyla alındı!"); },
-      (err) => { setLocating(false); showToast(`Konum alınamadı: ${err?.message || "Lütfen izin verin"}`); },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 }
-    );
+    setLocating(true); showToast("📍 Konum alınıyor...");
+    navigator.geolocation.getCurrentPosition((pos) => {
+      setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      setFocusToUserSeq(v => v + 1); setLocating(false); setSortType("distance"); showToast("✅ Konum alındı!");
+    }, () => { setLocating(false); showToast("İzin verin"); });
   };
 
-  const handleVote = (id, type) => { if (userVotes[id]) { showToast("Zaten oy kullandınız"); return; } setUserVotes((v) => ({ ...v, [id]: type })); showToast(type === "yes" ? "✅ Açık olduğunu bildirdiniz!" : "⚠️ Kapalı olduğunu bildirdiniz!"); };
+  // YENİ: Oylamayı Hafızaya Kaydeden Fonksiyon
+  const handleVote = (id, type) => {
+    if (userVotes[id]) { showToast("Zaten oy kullandınız"); return; }
+    const newVotes = { ...userVotes, [id]: type };
+    setUserVotes(newVotes);
+    localStorage.setItem("nobetci_eczane_votes", JSON.stringify(newVotes));
+    showToast(type === "yes" ? "✅ Teyit edildi, teşekkürler!" : "⚠️ Kapalı bildirildi.");
+  };
+
   const handleSelect = (id) => { setActiveId(id); const el = document.getElementById("card-" + id); if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" }); };
 
   const pharmaciesView = useMemo(() => {
     let mapped = pharmacies.map((p) => {
-      let badgeText = p.dist || "—"; let distanceKm = null;
-      if (userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(p.lat)) { const km = calcDistanceKm(userLocation.lat, userLocation.lng, p.lat, p.lng); distanceKm = km; badgeText = `${km.toFixed(1)} km`; }
-      return { ...p, badgeText, distanceKm, distanceText: distanceKm !== null ? `Size ${distanceKm.toFixed(1)} km uzaklıkta` : "", };
+      let distanceKm = null; let badgeText = p.dist || "—";
+      if (userLocation && p.lat) { const km = calcDistanceKm(userLocation.lat, userLocation.lng, p.lat, p.lng); distanceKm = km; badgeText = `${km.toFixed(1)} km`; }
+      return { ...p, badgeText, distanceKm, distanceText: distanceKm ? `Size ${distanceKm.toFixed(1)} km` : "" };
     });
-
-    mapped.sort((a, b) => {
-      if (sortType === "name") return a.name.localeCompare(b.name, "tr");
-      else if (sortType === "distance") {
-        if (a.distanceKm === null && b.distanceKm === null) return 0;
-        if (a.distanceKm === null) return 1; if (b.distanceKm === null) return -1;
-        return a.distanceKm - b.distanceKm;
-      }
-      return 0;
-    });
-
+    mapped.sort((a, b) => sortType === "name" ? a.name.localeCompare(b.name, "tr") : (a.distanceKm - b.distanceKm));
     return mapped;
   }, [pharmacies, userLocation, sortType]);
 
-  const activeTravelMode = activeId ? travelModes[activeId] || "walk" : "walk";
-
   return (
     <div className="flex flex-col h-[100dvh] bg-gray-950 text-white font-sans overflow-hidden w-full max-w-[100vw]">
-      
-      <div className="bg-gray-900 border-b border-gray-800 p-2 md:px-4 md:py-2.5 flex items-center gap-2 md:gap-3 shrink-0 z-50 w-full">
-        <div className="flex items-center gap-1.5 md:gap-2.5 shrink-0 hidden sm:flex">
-          <div className="w-8 h-8 md:w-9 md:h-9 bg-blue-600 rounded-xl flex items-center justify-center text-base md:text-lg shrink-0">💊</div>
-          <div><div className="text-xs md:text-sm font-bold leading-none">NöbetEczane</div><div className="text-blue-400 text-[10px] md:text-xs font-semibold tracking-wide mt-0.5">TÜRKİYE</div></div>
-        </div>
-        
-        <div className="flex-1 flex items-center gap-1.5 md:gap-2 relative min-w-0">
-          <div className="flex-1 flex items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-lg md:rounded-xl px-2 h-8 md:h-9 relative min-w-0">
-            <span className="text-gray-500 text-xs md:text-sm shrink-0">🔍</span>
-            <input
-              value={searchVal}
-              onChange={handleSearchInput}
-              onFocus={() => { if (searchVal.length > 1) setShowSuggestions(true); }}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              onKeyDown={(e) => { if (e.key === "Enter") { performSearch(searchVal); setShowSuggestions(false); } }}
-              className="flex-1 bg-transparent text-xs md:text-sm text-white outline-none placeholder-gray-500 w-full min-w-0"
-              placeholder="İl/İlçe (Örn: Manavgat)"
-            />
+      <div className="bg-gray-900 border-b border-gray-800 p-2 flex items-center gap-2 shrink-0 z-50 w-full">
+        <div className="flex-1 flex items-center gap-1.5 relative min-w-0">
+          <div className="flex-1 flex items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-lg px-2 h-8 relative min-w-0">
+            <span className="text-gray-500 text-xs shrink-0">🔍</span>
+            <input value={searchVal} onChange={handleSearchInput} onFocus={() => searchVal.length > 1 && setShowSuggestions(true)} onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} className="flex-1 bg-transparent text-xs text-white outline-none w-full" placeholder="İl/İlçe Ara..."/>
           </div>
-          
           {showSuggestions && suggestions.length > 0 && (
             <ul className="absolute top-10 left-0 w-full bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-[9999] max-h-60 overflow-y-auto">
-              {suggestions.map((s, i) => (
-                <li key={i} onClick={() => { setSearchVal(s.label); performSearch(s.label); }} className="px-3 py-2 text-xs md:text-sm text-gray-300 hover:bg-blue-600 hover:text-white cursor-pointer border-b border-gray-700 last:border-none">
-                  📍 {s.label}
-                </li>
-              ))}
+              {suggestions.map((s, i) => <li key={i} onClick={() => { setSearchVal(s.label); performSearch(s.label); }} className="px-3 py-2 text-xs text-gray-300 hover:bg-blue-600 hover:text-white cursor-pointer border-b border-gray-700 last:border-none">📍 {s.label}</li>)}
             </ul>
           )}
-
-          <button onClick={handleLocate} className={`h-8 md:h-9 px-2.5 rounded-lg md:rounded-xl text-xs font-bold flex items-center justify-center gap-1 border transition-all shrink-0 ${locating ? "bg-blue-600 border-blue-600 text-white" : "bg-blue-500/10 border-blue-500 text-blue-400 hover:bg-blue-600 hover:text-white"}`}>
-            📍 <span className="hidden sm:inline">{locating ? "Alınıyor" : "Konum"}</span>
-          </button>
-        </div>
-
-        <div className="hidden md:flex bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shrink-0">
-          {[["split","🗺 Harita+Liste"],["map","🗺 Harita"],["list","☰ Liste"]].map(([v,l]) => (
-            <button key={v} onClick={() => setView(v)} className={`h-9 px-3 text-xs font-bold transition-all ${view === v ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}>{l}</button>
-          ))}
+          <button onClick={handleLocate} className={`h-8 px-2.5 rounded-lg text-xs font-bold flex items-center justify-center border shrink-0 ${locating ? "bg-blue-600 border-blue-600 text-white" : "bg-blue-500/10 border-blue-500 text-blue-400"}`}>📍</button>
         </div>
       </div>
 
-      <div className="bg-green-500/8 border-b border-green-500/20 px-2 md:px-4 py-1.5 flex items-center gap-2 shrink-0">
-        <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-400 animate-pulse shrink-0" />
-        <span className="text-green-400 text-[10px] md:text-xs font-medium">Canlı — CollectAPI</span>
-        <span className="ml-auto text-gray-500 text-[10px] md:text-xs truncate pl-2">
-          {loadingPharmacies ? "Yükleniyor..." : apiError ? "Hata: " + apiError : `${pharmaciesView.length} eczane`}
-        </span>
+      <div className="bg-green-500/8 border-b border-green-500/20 px-2 py-1.5 flex items-center gap-2 shrink-0">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+        <span className="text-green-400 text-[10px] font-medium">Canlı Veri — CollectAPI</span>
       </div>
 
       <div className="relative flex-1 flex flex-col md:flex-row overflow-hidden w-full">
         {view !== "list" && (
-          <div className={`${view === "split" ? "flex-1 w-full" : "w-full h-full"} overflow-hidden z-0 flex flex-col`}>
-            <LeafletMapView pharmacies={pharmaciesView} activeId={activeId} onSelect={handleSelect} travelMode={activeTravelMode} userLocation={userLocation} focusToUserSeq={focusToUserSeq} onToast={showToast} />
+          <div className="flex-1 w-full overflow-hidden z-0 flex flex-col">
+            <LeafletMapView pharmacies={pharmaciesView} activeId={activeId} onSelect={handleSelect} travelMode={activeId ? travelModes[activeId] || "walk" : "walk"} userLocation={userLocation} focusToUserSeq={focusToUserSeq} onToast={showToast} />
           </div>
         )}
-
         {view !== "map" && (
-          <div className={`fixed bottom-0 left-0 right-0 z-[700] bg-gray-900/95 border-t border-gray-800 flex flex-col overflow-hidden backdrop-blur-sm h-[45vh] md:static md:z-auto md:backdrop-blur-none md:border-t-0 md:border-l md:h-full md:max-h-none ${view === "list" ? "md:w-full" : "md:w-80 xl:w-96"} md:shrink-0 w-full`}>
-            <div className="px-3 md:px-4 py-2 md:py-3 border-b border-gray-800 flex items-center justify-between sticky top-0 bg-gray-900/95 z-10 shrink-0">
-              <span className="text-xs md:text-sm font-bold">💊 {pharmaciesView.length} Eczane</span>
-              <select value={sortType} onChange={(e) => { if (e.target.value === "distance" && !userLocation) { showToast("⚠️ Önce konum izni vermelisiniz."); handleLocate(); } setSortType(e.target.value); }} className="bg-gray-800 border border-gray-700 rounded-lg text-gray-400 text-[10px] md:text-xs px-2 py-1 outline-none">
-                <option value="distance">En yakın önce</option>
-                <option value="name">Ada göre</option>
+          <div className="fixed bottom-0 left-0 right-0 z-[700] bg-gray-900/95 border-t border-gray-800 flex flex-col overflow-hidden h-[45vh] md:static md:h-full md:w-96 w-full">
+            <div className="px-3 py-2 border-b border-gray-800 flex items-center justify-between bg-gray-900/95 z-10 shrink-0">
+              <span className="text-xs font-bold">💊 {pharmaciesView.length} Eczane</span>
+              <select value={sortType} onChange={(e) => setSortType(e.target.value)} className="bg-gray-800 border border-gray-700 rounded-lg text-gray-400 text-[10px] px-2 py-1 outline-none">
+                <option value="distance">En yakın</option>
+                <option value="name">Alfabetik</option>
               </select>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 md:p-3 scrollbar-thin pb-6 md:pb-3 w-full">
+            <div className="flex-1 overflow-y-auto p-2 pb-6 w-full">
               {pharmaciesView.map((p) => (
                 <div id={"card-" + p.id} key={p.id} className="w-full">
-                  <PharmacyCard p={p} active={activeId === p.id} travelMode={travelModes[p.id] || "walk"} userVote={userVotes[p.id]} userLocation={userLocation} onSelect={handleSelect} onTravelChange={(mode) => setTravelModes((t) => ({ ...t, [p.id]: mode }))} onVote={(type) => handleVote(p.id, type)} onToast={showToast} />
+                  <PharmacyCard p={p} active={activeId === p.id} travelMode={travelModes[p.id] || "walk"} userVote={userVotes[p.id]} userLocation={userLocation} onSelect={handleSelect} onTravelChange={(mode) => setTravelModes(t => ({ ...t, [p.id]: mode }))} onVote={(type) => handleVote(p.id, type)} onToast={showToast} />
                 </div>
               ))}
             </div>
