@@ -36,16 +36,13 @@ function parseIlIlce(input) {
   return { il: parts[0] || "", ilce: "" };
 }
 
-// CollectAPI: Vercel ortaminda dogrudan API cagri
-const COLLECTAPI_APIKEY = import.meta.env.VITE_COLLECTAPI_KEY;
-
 async function fetchDutyPharmacies() {
-  const url = "https://api.collectapi.com/health/dutyPharmacy?city=ankara";
+  const url = "https://api.collectapi.com/health/dutyPharmacy?il=ankara";
 
   const res = await fetch(url, {
     method: "GET",
     headers: {
-      authorization: COLLECTAPI_APIKEY,
+      authorization: "apikey " + import.meta.env.VITE_COLLECTAPI_KEY,
       "content-type": "application/json",
     },
   });
