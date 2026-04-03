@@ -276,9 +276,34 @@ export default function App() {
     setLocating(true);
     if (!navigator.geolocation) { showToast("GPS desteklenmiyor."); setLocating(false); return; }
     
-    const watchId = navigator.geolocation.watchPosition((pos) => {
-      setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      if (!autoFocusedRef.current) { autoFocusedRef.current = true; setFocusToUserSeq(v => v + 1); }
+    const watchId = navigator.geolocation.watchPosition(async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      setUserLocation({ lat, lng });
+      
+      // SADECE İLK AÇILIŞTA OTOMATİK ARAMA YAP (Sürekli API'yi yormamak için)
+      if (!autoFocusedRef.current) { 
+        autoFocusedRef.current = true; 
+        setFocusToUserSeq(v => v + 1); 
+        
+        try {
+          // 1. GPS Koordinatlarını Şehir ismine çeviren ücretsiz tercüman
+          const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=tr`);
+          const geo = await res.json();
+          
+          // 2. Gelen veriden İli bul (Örn: "Ankara" veya "Antalya")
+          let sehir = geo.city || geo.principalSubdivision || "";
+          sehir = sehir.replace(" Province", "").replace(" İli", "").trim();
+          
+          // 3. Şehri bulduysak motoru ateşle!
+          if(sehir) {
+            setSearchVal(sehir);     // Arama kutusuna yaz
+            performSearch(sehir);    // Eczaneleri listeye dök!
+          }
+        } catch (error) {
+          showToast("Şehir otomatik bulunamadı, lütfen elinizle yazın.");
+        }
+      }
       setLocating(false);
     }, (err) => {
       setLocating(false);
