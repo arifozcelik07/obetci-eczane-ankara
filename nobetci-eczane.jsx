@@ -30,7 +30,7 @@ async function fetchDutyPharmacies(il, ilce) {
   if (ilce) url += `&ilce=${encodeURIComponent(ilce)}`;
   const res = await fetch(url, {
     method: "GET",
-    headers: { authorization: "apikey " + import.meta.env.VITE_COLLECTAPI_KEY, "content-type": "application/json" },
+    headers: { authorization: "apikey 4q1ZMO4lF6Yw7CROtq8xBj:4aSRD0VrbbbRod52SQeKva", "content-type": "application/json" },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data?.success !== true) throw new Error("API Hatası");
@@ -239,7 +239,7 @@ export default function App() {
 
   // OTOMATİK KONUM VE İLK VERİ ATEŞLEME
   useEffect(() => {
-    performSearch("Ankara");
+    //performSearch("Ankara");
     handleLocate(); // Site açılınca direkt konumu sor
     fetch("https://turkiyeapi.dev/api/v1/provinces")
       .then(res => res.json()).then(data => {
@@ -273,7 +273,7 @@ export default function App() {
 
   const handleSearchInput = (e) => {
     const val = e.target.value; setSearchVal(val);
-    if (val === "") { setShowSuggestions(false); setActiveId(null); performSearch("Ankara"); return; }
+    if (val === "") { setShowSuggestions(false); setActiveId(null); return; }
     if (val.trim().length > 1) {
       const lowerVal = val.toLocaleLowerCase('tr-TR');
       setSuggestions(allLocations.filter(l => l.label.toLocaleLowerCase('tr-TR').includes(lowerVal)).slice(0, 15));

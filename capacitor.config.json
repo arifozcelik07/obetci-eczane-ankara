@@ -1,0 +1,15 @@
+{
+  "appId": "com.nobeteczane.ankara",
+  "appName": "Nöbetçi Eczane",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#030712",
+      "showSpinner": false
+    }
+  }
+}
