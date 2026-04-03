@@ -131,11 +131,17 @@ function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect,
 
   const openExternalNavigation = (provider) => {
     if (!hasUserLoc) { onToast("Önce konumunuzu alın."); return; }
+    
     const googleMode = travelMode === "walk" ? "walking" : travelMode === "bus" ? "transit" : "driving";
     const appleMode = travelMode === "walk" ? "w" : travelMode === "bus" ? "r" : "d";
+    
     const origin = `${userLocation.lat},${userLocation.lng}`;
     const destination = `${p.lat},${p.lng}`;
-    const url = provider === "google" ? `http://maps.google.com/maps?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(destination)}&dirflg=${googleMode}` : `https://maps.apple.com/?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(destination)}&t=${appleMode}`;
+    
+    const url = provider === "google" 
+      ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=${googleMode}` 
+      : `https://maps.apple.com/?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(destination)}&dirflg=${appleMode}`;
+      
     window.open(url, "_blank", "noopener,noreferrer");
     onToast(provider === "google" ? "Google Haritalar'da açılıyor..." : "Apple Haritalar'da açılıyor...");
   };
