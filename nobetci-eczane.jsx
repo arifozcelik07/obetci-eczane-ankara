@@ -335,21 +335,37 @@ export default function App() {
       .catch(err => console.log("Yerel veri çekilemedi", err));
   }, []);
 
-  // 2. KULLANICI YAZDIKÇA ÇALIŞAN FONKSiYON
-  const handleSearchInput = (e) => {
-    const val = e.target.value;
-    setSearchVal(val);
+// 2. KULLANICI YAZDIKÇA ÇALIŞAN FONKSiYON (GÜNCELLENDİ)
+const handleSearchInput = (e) => {
+  const val = e.target.value;
+  setSearchVal(val);
+  
+  // YENİ ÖZELLİK: EĞER KUTUYU TAMAMEN SİLDİYSE
+  if (val === "") {
+    setShowSuggestions(false);
+    setActiveId(null); // Varsa seçili eczanenin mavi ışığını kapat
     
-    if (val.trim().length > 1) {
-      const lowerVal = val.toLocaleLowerCase('tr-TR');
-      // Kullanıcının yazdığı metni tüm ilçelerde/illerde ara
-      const matches = allLocations.filter(l => l.label.toLocaleLowerCase('tr-TR').includes(lowerVal)).slice(0, 15);
-      setSuggestions(matches);
-      setShowSuggestions(true);
+    if (userLocation) {
+      // Zaten GPS konumu biliniyorsa direkt haritayı oraya kaydır
+      setFocusToUserSeq(v => v + 1);
+      setSortType("distance"); // Sıralamayı otomatiğe (mesafeye) çek
     } else {
-      setShowSuggestions(false);
+      // Konumu henüz alınmadıysa GPS'i tetikle
+      handleLocate(); 
     }
-  };
+    return; // İşlemi burada kes, aşağıdaki arama kodlarına inmesin
+  }
+
+  // NORMAL ARAMA İŞLEMİ (Eskisi gibi)
+  if (val.trim().length > 1) {
+    const lowerVal = val.toLocaleLowerCase('tr-TR');
+    const matches = allLocations.filter(l => l.label.toLocaleLowerCase('tr-TR').includes(lowerVal)).slice(0, 15);
+    setSuggestions(matches);
+    setShowSuggestions(true);
+  } else {
+    setShowSuggestions(false);
+  }
+};
 
   // 3. SEÇiLEN iL VE iLÇEYE GÖRE API'DEN ECZANELERi ÇEKME
   const performSearch = async (queryVal = searchVal) => {
