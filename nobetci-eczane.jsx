@@ -306,7 +306,9 @@ export default function App() {
   const [locating, setLocating] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const autoFocusedRef = useRef(false);
-
+  useEffect(() => {
+    performSearch("Ankara");
+  }, []);
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3500); };
 
   useEffect(() => {
