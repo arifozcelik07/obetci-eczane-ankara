@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, increment } from "firebase/firestore";
 
 function calcDistanceKm(lat1, lon1, lat2, lon2) {
   const toRad = (v) => (v * Math.PI) / 180;
@@ -8,6 +10,19 @@ function calcDistanceKm(lat1, lon1, lat2, lon2) {
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.asin(Math.sqrt(a));
 }
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCTq7X8fymDouyhIwS-sIj-cXbqiGj3k7E",
+  authDomain: "nobetcieczane-144f7.firebaseapp.com",
+  projectId: "nobetcieczane-144f7",
+  storageBucket: "nobetcieczane-144f7.firebasestorage.app",
+  messagingSenderId: "252308528105",
+  appId: "1:252308528105:web:535213095f8e30b11ac978"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
 function parseLoc(loc) {
   if (!loc) return null;
@@ -92,9 +107,10 @@ function TravelChip({ icon, label, selected, onClick }) {
   );
 }
 
-function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect, onTravelChange, onVote, onToast }) {
+function PharmacyCard({ p, active,globalVotes, travelMode, userVote, userLocation, onSelect, onTravelChange, onVote, onToast }) {
   const hasVoted = userVote === "yes" || userVote === "no";
   const hasUserLoc = userLocation && Number.isFinite(userLocation.lat);
+  const votes = globalVotes?.[p.id];
 
   const handleCall = (e, phone) => {
     e.stopPropagation(); 
@@ -137,7 +153,13 @@ function PharmacyCard({ p, active, travelMode, userVote, userLocation, onSelect,
           <span className="text-green-400 text-[9px] md:text-[10px] font-extrabold uppercase">✓ TEYİT EDİLDİ</span>
         </div>
       )}
-
+      {votes?.yes > 0 && (
+      <div className="mb-2 flex items-center gap-1.5">
+        <span className="flex h-5 items-center justify-center rounded-full bg-green-500/20 px-2 text-[10px] font-bold text-green-400 border border-green-500/30">
+          ✅ {votes.yes} Kişi Teyit Etti
+        </span>
+      </div>
+    )}
       <div className="flex items-start justify-between mb-2 w-full pt-1">
         <div className="font-bold text-white text-sm md:text-base leading-snug flex-1 mr-2 break-words">💊 {p.name}</div>
         <span className="bg-blue-500/15 border border-blue-500/40 text-blue-300 text-[10px] md:text-xs font-bold px-2 py-1 rounded-lg shrink-0 whitespace-nowrap">{p.badgeText}</span>
@@ -203,6 +225,12 @@ function LeafletMapView({ pharmacies, activeId, onSelect, travelMode, userLocati
   }, []);
 
   useEffect(() => {
+    if (pharmacies.length > 0) {
+      fetchGlobalVotes(pharmacies);
+    }
+  }, [pharmacies]); // Eczane listesi her güncellendiğinde çalışır
+
+  useEffect(() => {
     const map = mapRef.current; const L = leafletRef.current; if (!map || !L) return;
     markersRef.current.forEach(m => map.removeLayer(m)); markersRef.current = [];
     pharmacies.forEach((p) => {
@@ -233,6 +261,8 @@ function LeafletMapView({ pharmacies, activeId, onSelect, travelMode, userLocati
 
 export default function App() {
   const [pharmacies, setPharmacies] = useState([]);
+  // 🌍 Buluttan gelen genel teyit sayılarını burada tutacağız
+  const [globalVotes, setGlobalVotes] = useState({});
   const [activeId, setActiveId] = useState(null);
   const [travelModes, setTravelModes] = useState({});
   const [userLocation, setUserLocation] = useState(null);
@@ -347,12 +377,50 @@ export default function App() {
     } catch { setApiError("Hata oluştu"); } finally { setLoadingPharmacies(false); }
   };
 
-  const handleVote = (id, type) => {
+  // ☁️ Buluttan oyları çeken usta işi fonksiyon
+const fetchGlobalVotes = async (pharmacyList) => {
+  const votesData = {};
+  
+  try {
+    // Listelenen her eczane için buluta tek tek "Sana kim oy verdi?" diye soruyoruz
+    for (const p of pharmacyList) {
+      const docRef = doc(db, "pharmacy_votes", p.id);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        votesData[p.id] = docSnap.data(); // "yes" ve "no" sayılarını al
+      }
+    }
+    setGlobalVotes(votesData); // Ekrana yansıtması için hafızaya kaydet
+  } catch (error) {
+    console.error("Bulut verisi çekilemedi:", error);
+  }
+};
+
+  const handleVote = async (id, type) => {
     if (userVotes[id]) { showToast("Zaten oy kullandınız"); return; }
-    const newVotes = { ...userVotes, [id]: type };
-    setUserVotes(newVotes);
-    localStorage.setItem("nobetci_eczane_votes", JSON.stringify(newVotes));
-    showToast(type === "yes" ? "✅ Teyit edildi, teşekkürler!" : "⚠️ Kapalı bildirildi.");
+    
+    try {
+      const docRef = doc(db, "pharmacy_votes", id); // Eczane ID'si ile buluta bağlan
+      const docSnap = await getDoc(docRef);
+  
+      if (!docSnap.exists()) {
+        // Bu eczane için ilk kez oy veriliyorsa yeni kayıt aç
+        await setDoc(docRef, { [type]: 1 });
+      } else {
+        // Varsa üzerine ekle (increment +1 yapar)
+        await updateDoc(docRef, { [type]: increment(1) });
+      }
+  
+      // Telefonun kendi hafızasına da "Ben bu eczaneye oy verdim" diye yaz (tekrarlamasın diye)
+      const newVotes = { ...userVotes, [id]: type };
+      setUserVotes(newVotes);
+      localStorage.setItem("nobetci_eczane_votes", JSON.stringify(newVotes));
+      
+      showToast("✅ Teyit buluta iletildi!");
+    } catch (e) {
+      showToast("Bağlantı hatası!");
+    }
   };
 
   const handleSelect = (id) => { setActiveId(id); const el = document.getElementById("card-" + id); if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" }); };
