@@ -210,6 +210,25 @@ function LeafletMapView({ pharmacies, activeId, onSelect, travelMode, userLocati
   const containerRef = useRef(null); const mapRef = useRef(null); const leafletRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const markersRef = useRef([]); const userMarkerRef = useRef(null); const routingControlRef = useRef(null);
+    // ☁️ Buluttan oyları çeken usta işi fonksiyon
+const fetchGlobalVotes = async (pharmacyList) => {
+  const votesData = {};
+  
+  try {
+    // Listelenen her eczane için buluta tek tek "Sana kim oy verdi?" diye soruyoruz
+    for (const p of pharmacyList) {
+      const docRef = doc(db, "pharmacy_votes", p.id);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        votesData[p.id] = docSnap.data(); // "yes" ve "no" sayılarını al
+      }
+    }
+    setGlobalVotes(votesData); // Ekrana yansıtması için hafızaya kaydet
+  } catch (error) {
+    console.error("Bulut verisi çekilemedi:", error);
+  }
+};
 
   useEffect(() => {
     const init = async () => {
@@ -377,25 +396,7 @@ export default function App() {
     } catch { setApiError("Hata oluştu"); } finally { setLoadingPharmacies(false); }
   };
 
-  // ☁️ Buluttan oyları çeken usta işi fonksiyon
-const fetchGlobalVotes = async (pharmacyList) => {
-  const votesData = {};
-  
-  try {
-    // Listelenen her eczane için buluta tek tek "Sana kim oy verdi?" diye soruyoruz
-    for (const p of pharmacyList) {
-      const docRef = doc(db, "pharmacy_votes", p.id);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        votesData[p.id] = docSnap.data(); // "yes" ve "no" sayılarını al
-      }
-    }
-    setGlobalVotes(votesData); // Ekrana yansıtması için hafızaya kaydet
-  } catch (error) {
-    console.error("Bulut verisi çekilemedi:", error);
-  }
-};
+
 
   const handleVote = async (id, type) => {
     if (userVotes[id]) { showToast("Zaten oy kullandınız"); return; }
