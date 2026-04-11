@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, increment } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, onSnapshot, collection } from "firebase/firestore";
 
+// --- YARDIMCI FONKSİYONLAR (ORİJİNAL) ---
 function calcDistanceKm(lat1, lon1, lat2, lon2) {
   const toRad = (v) => (v * Math.PI) / 180;
   const R = 6371;
@@ -11,7 +12,6 @@ function calcDistanceKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.asin(Math.sqrt(a));
 }
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCTq7X8fymDouyhIwS-sIj-cXbqiGj3k7E",
   authDomain: "nobetcieczane-144f7.firebaseapp.com",
@@ -21,7 +21,6 @@ const firebaseConfig = {
   appId: "1:252308528105:web:535213095f8e30b11ac978"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
@@ -80,18 +79,10 @@ async function ensureLeafletLoaded() {
     `;
     document.head.appendChild(style);
   }
-
-  if (!document.querySelector('link[data-lrm-css="true"]')) {
-    const link = document.createElement("link"); link.rel = "stylesheet"; link.href = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"; link.setAttribute("data-lrm-css", "true"); document.head.appendChild(link);
-  }
-  if (!document.querySelector('script[data-lrm-js="true"]')) {
-    await new Promise((resolve, reject) => {
-      const script = document.createElement("script"); script.src = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"; script.async = true; script.defer = true; script.setAttribute("data-lrm-js", "true"); script.onload = resolve; script.onerror = reject; document.body.appendChild(script);
-    });
-  }
   return window.L;
 }
 
+// --- BİLEŞENLER ---
 function Toast({ msg }) {
   return msg ? (
     <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[9999] bg-gray-900 border border-green-500 text-green-400 text-sm font-semibold px-5 py-2.5 rounded-xl shadow-2xl whitespace-nowrap animate-bounce-in">
@@ -108,28 +99,23 @@ function TravelChip({ icon, label, selected, onClick }) {
   );
 }
 
-function PharmacyCard({ p, active,globalVotes, travelMode, userVote, userLocation, onSelect, onTravelChange, onVote, onToast }) {
-  const hasVoted = userVote === "yes" || userVote === "no";
+function PharmacyCard({ p, active, globalVotes, travelMode, userVote, userLocation, onSelect, onTravelChange, onVote, onToast }) {
   const hasUserLoc = userLocation && Number.isFinite(userLocation.lat);
   const votes = globalVotes?.[p.id];
 
   const handleCall = (e, phone) => {
     e.stopPropagation(); 
     if (!phone) return;
-    const cleanedPhone = phone.replace(/\D/g, ''); 
-    window.location.href = `tel:${cleanedPhone}`;
+    window.location.href = `tel:${phone.replace(/\D/g, '')}`;
   };
 
   const handleWhatsApp = (e, phone) => {
     e.stopPropagation(); 
     if (!phone) return;
-    let cleanedPhone = phone.replace(/\D/g, '');
-    if (cleanedPhone.startsWith('0')) {
-      cleanedPhone = '90' + cleanedPhone.substring(1);
-    } else if (!cleanedPhone.startsWith('90')) {
-      cleanedPhone = '90' + cleanedPhone;
-    }
-    window.open(`https://wa.me/${cleanedPhone}`, '_blank');
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) cleaned = '90' + cleaned.substring(1);
+    else if (!cleaned.startsWith('90')) cleaned = '90' + cleaned;
+    window.open(`https://wa.me/${cleaned}`, '_blank');
   };
 
   const openExternalNavigation = (provider) => {
@@ -141,8 +127,7 @@ function PharmacyCard({ p, active,globalVotes, travelMode, userVote, userLocatio
     const url = provider === "google" 
       ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=${googleMode}` 
       : `https://maps.apple.com/?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(destination)}&dirflg=${appleMode}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-    onToast("Haritalar açılıyor...");
+    window.open(url, "_blank");
   };
 
   return (
@@ -154,21 +139,23 @@ function PharmacyCard({ p, active,globalVotes, travelMode, userVote, userLocatio
           <span className="text-green-400 text-[9px] md:text-[10px] font-extrabold uppercase">✓ TEYİT EDİLDİ</span>
         </div>
       )}
+
       {votes?.yes > 0 && (
-      <div className="mb-2 flex items-center gap-1.5">
-        <span className="flex h-5 items-center justify-center rounded-full bg-green-500/20 px-2 text-[10px] font-bold text-green-400 border border-green-500/30">
-          ✅ {votes.yes} Kişi Teyit Etti
-        </span>
-      </div>
-    )}
+        <div className="mb-2 flex items-center gap-1.5">
+          <span className="flex h-5 items-center justify-center rounded-full bg-green-500/20 px-2 text-[10px] font-bold text-green-400 border border-green-500/30">
+            ✅ {votes.yes} Kişi Teyit Etti
+          </span>
+        </div>
+      )}
+
       <div className="flex items-start justify-between mb-2 w-full pt-1">
         <div className="font-bold text-white text-sm md:text-base leading-snug flex-1 mr-2 break-words">💊 {p.name}</div>
-        <span className="bg-blue-500/15 border border-blue-500/40 text-blue-300 text-[10px] md:text-xs font-bold px-2 py-1 rounded-lg shrink-0 whitespace-nowrap">{p.badgeText}</span>
+        <span className="bg-blue-500/15 border border-blue-500/40 text-blue-300 text-[10px] md:text-xs font-bold px-2 py-1 rounded-lg shrink-0">{p.badgeText}</span>
       </div>
 
       <p className="text-xs text-gray-400 mb-1.5 leading-relaxed break-words">📍 {p.addr}</p>
       <p className="text-xs text-blue-400 font-semibold mb-3">📞 {p.phone}</p>
-      {p.distanceText ? <p className="text-[11px] text-violet-300 font-bold mb-2">📏 {p.distanceText}</p> : null}
+      {p.distanceText && <p className="text-[11px] text-violet-300 font-bold mb-2">📏 {p.distanceText}</p>}
       
       <div className="flex gap-1.5 mb-3 w-full">
         <TravelChip icon="🚶" label="Yaya" selected={travelMode === "walk"} onClick={(e) => { e.stopPropagation(); onTravelChange("walk"); onSelect(p.id); }} />
@@ -197,39 +184,10 @@ function PharmacyCard({ p, active,globalVotes, travelMode, userVote, userLocatio
   );
 }
 
-function LeafletMapView({ pharmacies, activeId, onSelect, travelMode, userLocation, focusToUserSeq, onToast }) {
-  function MapResizer({ map, containerEl }) {
-    useEffect(() => {
-      if (!map) return;
-      const run = () => map.invalidateSize(); run();
-      const raf = requestAnimationFrame(run);
-      let ro = null; if (containerEl && typeof ResizeObserver !== "undefined") { ro = new ResizeObserver(() => run()); ro.observe(containerEl); }
-      return () => { cancelAnimationFrame(raf); if (ro) ro.disconnect(); };
-    }, [map, containerEl]);
-    return null;
-  }
+function LeafletMapView({ pharmacies, activeId, onSelect, userLocation, focusToUserSeq, onToast }) {
   const containerRef = useRef(null); const mapRef = useRef(null); const leafletRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
-  const markersRef = useRef([]); const userMarkerRef = useRef(null); const routingControlRef = useRef(null);
-    // ☁️ Buluttan oyları çeken usta işi fonksiyon
-const fetchGlobalVotes = async (pharmacyList) => {
-  const votesData = {};
-  
-  try {
-    // Listelenen her eczane için buluta tek tek "Sana kim oy verdi?" diye soruyoruz
-    for (const p of pharmacyList) {
-      const docRef = doc(db, "pharmacy_votes", p.id);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        votesData[p.id] = docSnap.data(); // "yes" ve "no" sayılarını al
-      }
-    }
-    setGlobalVotes(votesData); // Ekrana yansıtması için hafızaya kaydet
-  } catch (error) {
-    console.error("Bulut verisi çekilemedi:", error);
-  }
-};
+  const markersRef = useRef([]); const userMarkerRef = useRef(null);
 
   useEffect(() => {
     const init = async () => {
@@ -245,19 +203,13 @@ const fetchGlobalVotes = async (pharmacyList) => {
   }, []);
 
   useEffect(() => {
-    if (pharmacies.length > 0) {
-      fetchGlobalVotes(pharmacies);
-    }
-  }, [pharmacies]); // Eczane listesi her güncellendiğinde çalışır
-
-  useEffect(() => {
     const map = mapRef.current; const L = leafletRef.current; if (!map || !L) return;
     markersRef.current.forEach(m => map.removeLayer(m)); markersRef.current = [];
     pharmacies.forEach((p) => {
       const isActive = p.id === activeId; const color = isActive ? "#60a5fa" : "#3b82f6";
       const icon = L.divIcon({ html: `<div style="width:30px;height:30px;border-radius:15px;background:rgba(59,130,246,0.18);border:2px solid ${color};display:flex;align-items:center;justify-content:center;color:${color};font-weight:900;">💊</div>`, className: "", iconSize: [30, 30], iconAnchor: [15, 15] });
       const marker = L.marker([p.lat, p.lng], { icon }).addTo(map);
-      marker.on("click", () => onSelect(p.id)); marker.bindTooltip(p.name, { direction: "top", offset: [0, -10] });
+      marker.on("click", () => onSelect(p.id));
       markersRef.current.push(marker);
     });
     
@@ -265,7 +217,6 @@ const fetchGlobalVotes = async (pharmacyList) => {
     if (userLocation?.lat) {
       const userIcon = L.divIcon({ className: "", html: `<div class="user-live-wrapper"><div class="user-live-ring"></div><div class="user-live-dot"></div></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
       userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon }).addTo(map);
-      userMarkerRef.current.bindTooltip("SİZ", { permanent: true, direction: "top", offset: [0, -10] });
     }
   }, [pharmacies, activeId, userLocation]);
 
@@ -274,25 +225,20 @@ const fetchGlobalVotes = async (pharmacyList) => {
   return (
     <div className="relative w-full h-[500px] md:h-full bg-gray-950 flex-1">
       <div ref={containerRef} className="w-full h-full bg-gray-950" />
-      {mapReady ? <MapResizer map={mapRef.current} containerEl={containerRef.current} /> : null}
     </div>
   );
 }
 
+// --- ANA UYGULAMA (APP) ---
 export default function App() {
   const [pharmacies, setPharmacies] = useState([]);
-  // 🌍 Buluttan gelen genel teyit sayılarını burada tutacağız
-  const [globalVotes, setGlobalVotes] = useState({});
+  const [globalVotes, setGlobalVotes] = useState({}); // 📡 Merkezi oylar
   const [activeId, setActiveId] = useState(null);
   const [travelModes, setTravelModes] = useState({});
   const [userLocation, setUserLocation] = useState(null);
-  
-  // 🚀 YENİ: Kullanıcının gerçek şehrini hafızada tutuyoruz
   const [userCity, setUserCity] = useState(""); 
-  
   const [focusToUserSeq, setFocusToUserSeq] = useState(0);
   const [loadingPharmacies, setLoadingPharmacies] = useState(false);
-  const [apiError, setApiError] = useState("");
   const [toast, setToast] = useState("");
   const [view, setView] = useState("split");
   const [searchVal, setSearchVal] = useState("");
@@ -300,14 +246,26 @@ export default function App() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [sortType, setSortType] = useState("distance");
-  const [locating, setLocating] = useState(false);
-  
   const [userVotes, setUserVotes] = useState(() => {
     const saved = localStorage.getItem("nobetci_eczane_votes");
     return saved ? JSON.parse(saved) : {};
   });
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3500); };
+
+  // 📡 CANLI DİNLEYİCİ: Firebase Firestore üzerinden canlı oyları dinle
+  useEffect(() => {
+    const q = collection(db, "pharmacy_votes");
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const votes = {};
+      snapshot.forEach((doc) => {
+        votes[doc.id] = doc.data();
+      });
+      setGlobalVotes(votes);
+      console.log("Canlı oylar güncellendi:", votes);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     handleLocate(); 
@@ -326,57 +284,35 @@ export default function App() {
   const autoFocusedRef = useRef(false);
 
   const handleLocate = () => {
-    setLocating(true);
-    if (!navigator.geolocation) { showToast("GPS desteklenmiyor."); setLocating(false); return; }
-    
+    if (!navigator.geolocation) { showToast("GPS desteklenmiyor."); return; }
     const watchId = navigator.geolocation.watchPosition(async (pos) => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
+      const lat = pos.coords.latitude; const lng = pos.coords.longitude;
       setUserLocation({ lat, lng });
-      
       if (!autoFocusedRef.current) { 
         autoFocusedRef.current = true; 
         setFocusToUserSeq(v => v + 1); 
-        
         try {
           const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=tr`);
           const geo = await res.json();
           let sehir = geo.city || geo.principalSubdivision || "";
           sehir = sehir.replace(" Province", "").replace(" İli", "").trim();
-          
-          if(sehir) {
-            setUserCity(sehir);   // Hafızaya aldık!
-            setSearchVal(sehir);     
-            performSearch(sehir);    
-          }
-        } catch (error) {
-          showToast("Şehir otomatik bulunamadı, lütfen elinizle yazın.");
-        }
+          if(sehir) { setUserCity(sehir); setSearchVal(sehir); performSearch(sehir); }
+        } catch { showToast("Şehir otomatik bulunamadı."); }
       }
-      setLocating(false);
     }, (err) => {
-      setLocating(false);
-      if (err.code === 1) showToast("⚠️ Lütfen konum izni verin (Mesafe için şart)");
-    }, { enableHighAccuracy: true, timeout: 10000 });
-    
+      if (err.code === 1) showToast("⚠️ Konum izni verilmeli.");
+    }, { enableHighAccuracy: true });
     return () => navigator.geolocation.clearWatch(watchId);
   };
 
   const handleSearchInput = (e) => {
     const val = e.target.value; setSearchVal(val);
-    
-    // 🚀 YENİ: Kutu temizlendiğinde kendi şehrimize geri dön!
     if (val === "") { 
-      setShowSuggestions(false); 
-      setActiveId(null); 
-      if (userCity) {
-        performSearch(userCity);
-      } else {
-        setPharmacies([]);
-      }
+      setShowSuggestions(false); setActiveId(null); 
+      if (userCity) performSearch(userCity);
+      else setPharmacies([]);
       return; 
     }
-    
     if (val.trim().length > 1) {
       const lowerVal = val.toLocaleLowerCase('tr-TR');
       setSuggestions(allLocations.filter(l => l.label.toLocaleLowerCase('tr-TR').includes(lowerVal)).slice(0, 15));
@@ -386,7 +322,7 @@ export default function App() {
 
   const performSearch = async (queryVal = searchVal) => {
     const { il, ilce } = parseIlIlce(queryVal); if (!il) return;
-    setLoadingPharmacies(true); setApiError(""); setShowSuggestions(false);
+    setLoadingPharmacies(true); setShowSuggestions(false);
     try {
       const data = await fetchDutyPharmacies(il, ilce);
       const mapped = data.map((x) => {
@@ -394,35 +330,21 @@ export default function App() {
         return { id: String(x.loc || x.name).replace(/[^a-zA-Z0-9_-]/g, "_"), name: x.name, addr: x.address, phone: x.phone, dist: x.dist, lat: coords.lat, lng: coords.lng };
       }).filter(Boolean);
       setPharmacies(mapped); setActiveId(null);
-    } catch { setApiError("Hata oluştu"); } finally { setLoadingPharmacies(false); }
+    } catch { showToast("Arama hatası!"); } finally { setLoadingPharmacies(false); }
   };
-
-
 
   const handleVote = async (id, type) => {
     if (userVotes[id]) { showToast("Zaten oy kullandınız"); return; }
-    
     try {
-      const docRef = doc(db, "pharmacy_votes", id); // Eczane ID'si ile buluta bağlan
+      const docRef = doc(db, "pharmacy_votes", id);
       const docSnap = await getDoc(docRef);
-  
-      if (!docSnap.exists()) {
-        // Bu eczane için ilk kez oy veriliyorsa yeni kayıt aç
-        await setDoc(docRef, { [type]: 1 });
-      } else {
-        // Varsa üzerine ekle (increment +1 yapar)
-        await updateDoc(docRef, { [type]: increment(1) });
-      }
-  
-      // Telefonun kendi hafızasına da "Ben bu eczaneye oy verdim" diye yaz (tekrarlamasın diye)
+      if (!docSnap.exists()) await setDoc(docRef, { [type]: 1 });
+      else await updateDoc(docRef, { [type]: increment(1) });
       const newVotes = { ...userVotes, [id]: type };
       setUserVotes(newVotes);
       localStorage.setItem("nobetci_eczane_votes", JSON.stringify(newVotes));
-      
       showToast("✅ Teyit buluta iletildi!");
-    } catch (e) {
-      showToast("Bağlantı hatası!");
-    }
+    } catch { showToast("Bağlantı hatası!"); }
   };
 
   const handleSelect = (id) => { setActiveId(id); const el = document.getElementById("card-" + id); if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" }); };
@@ -431,16 +353,12 @@ export default function App() {
     let mapped = pharmacies.map((p) => {
       let distanceKm = null; let badgeText = p.dist || "—";
       if (userLocation && p.lat) { 
-        const km = calcDistanceKm(userLocation.lat, userLocation.lng, p.lat, p.lng); 
-        distanceKm = km; 
-        badgeText = `${km.toFixed(1)} km`; 
+        distanceKm = calcDistanceKm(userLocation.lat, userLocation.lng, p.lat, p.lng); 
+        badgeText = `${distanceKm.toFixed(1)} km`; 
       }
       return { ...p, badgeText, distanceKm, distanceText: distanceKm ? `Sana ${distanceKm.toFixed(1)} km uzaklıkta` : "" };
     });
-    mapped.sort((a, b) => {
-      if (sortType === "distance" && userLocation) return (a.distanceKm - b.distanceKm);
-      return a.name.localeCompare(b.name, "tr");
-    });
+    mapped.sort((a, b) => sortType === "distance" && userLocation ? (a.distanceKm - b.distanceKm) : a.name.localeCompare(b.name, "tr"));
     return mapped;
   }, [pharmacies, userLocation, sortType]);
 
@@ -450,52 +368,58 @@ export default function App() {
         <div className="flex-1 flex items-center gap-1.5 relative min-w-0">
           <div className="flex-1 flex items-center gap-1.5 bg-gray-800 border border-gray-700 rounded-lg px-2 h-9 relative min-w-0">
             <span className="text-gray-500 text-xs shrink-0">🔍</span>
-            <input value={searchVal} onChange={handleSearchInput} onFocus={() => searchVal.length > 1 && setShowSuggestions(true)} onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} className="flex-1 bg-transparent text-xs text-white outline-none w-full" placeholder="İl veya İlçe Ara (Örn: Çankaya)"/>
+            <input value={searchVal} onChange={handleSearchInput} onFocus={() => searchVal.length > 1 && setShowSuggestions(true)} onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} className="flex-1 bg-transparent text-xs text-white outline-none w-full" placeholder="İl veya İlçe Ara"/>
           </div>
-          {showSuggestions && suggestions.length > 0 && (
-            <ul className="absolute top-11 left-0 w-full bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-[9999] max-h-60 overflow-y-auto border-t-0 rounded-t-none">
-              {suggestions.map((s, i) => <li key={i} onClick={() => { setSearchVal(s.label); performSearch(s.label); }} className="px-3 py-2.5 text-xs text-gray-300 hover:bg-blue-600 hover:text-white cursor-pointer border-b border-gray-700 last:border-none transition-colors">📍 {s.label}</li>)}
+          {showSuggestions && (
+            <ul className="absolute top-11 left-0 w-full bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-[9999] max-h-60 overflow-y-auto">
+              {suggestions.map((s, i) => <li key={i} onClick={() => { setSearchVal(s.label); performSearch(s.label); }} className="px-3 py-2.5 text-xs hover:bg-blue-600 cursor-pointer border-b border-gray-700">📍 {s.label}</li>)}
             </ul>
           )}
-          
-          {/* 🚀 YENİ: GPS Butonuna da hafızayı bağladık */}
-          <button onClick={() => { 
-            if(userCity) { setSearchVal(userCity); performSearch(userCity); }
-            setFocusToUserSeq(v => v + 1); 
-          }} className={`h-9 px-3 rounded-lg text-sm flex items-center justify-center border shrink-0 transition-all ${userLocation ? "bg-blue-600 border-blue-500" : "bg-gray-800 border-gray-700 animate-pulse"}`}>📍</button>
+          <button onClick={() => { if(userCity) { setSearchVal(userCity); performSearch(userCity); } setFocusToUserSeq(v => v + 1); }} className={`h-9 px-3 rounded-lg text-sm border transition-all ${userLocation ? "bg-blue-600 border-blue-500" : "bg-gray-800 border-gray-700 animate-pulse"}`}>📍</button>
         </div>
       </div>
 
       <div className="bg-blue-500/5 border-b border-blue-500/20 px-3 py-1.5 flex items-center gap-2 shrink-0">
-        <span className={`w-2 h-2 rounded-full ${userLocation ? "bg-green-400" : "bg-yellow-400 animate-pulse"} shrink-0`} />
+        <span className={`w-2 h-2 rounded-full ${userLocation ? "bg-green-400" : "bg-yellow-400 animate-pulse"}`} />
         <span className="text-blue-200 text-[10px] font-bold uppercase tracking-wider">{userLocation ? "GPS AKTİF" : "GPS ARANIYOR..."}</span>
       </div>
 
       <div className="relative flex-1 flex flex-col md:flex-row overflow-hidden w-full">
         {view !== "list" && (
-          <div className="flex-1 w-full overflow-hidden z-0 flex flex-col relative">
-            <LeafletMapView pharmacies={pharmaciesView} activeId={activeId} onSelect={handleSelect} travelMode={activeId ? travelModes[activeId] || "walk" : "walk"} userLocation={userLocation} focusToUserSeq={focusToUserSeq} onToast={showToast} />
-            <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2">
+          <div className="flex-1 w-full overflow-hidden z-0 relative">
+            <LeafletMapView pharmacies={pharmaciesView} activeId={activeId} onSelect={handleSelect} userLocation={userLocation} focusToUserSeq={focusToUserSeq} onToast={showToast} />
+            <div className="absolute top-4 left-4 z-[400]">
               <button onClick={() => setView(view === "split" ? "map" : "split")} className="p-2 bg-gray-900/90 rounded-lg border border-gray-700 text-xs hidden md:block">🖥 Görünümü Değiştir</button>
             </div>
           </div>
         )}
         {view !== "map" && (
-          <div className="fixed bottom-0 left-0 right-0 z-[700] bg-gray-900/98 border-t border-gray-800 flex flex-col overflow-hidden h-[45vh] md:static md:h-full md:w-96 w-full shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
-            <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between bg-gray-900/98 z-10 shrink-0">
+          <div className="fixed bottom-0 left-0 right-0 z-[700] bg-gray-900/98 border-t border-gray-800 flex flex-col h-[45vh] md:static md:h-full md:w-96 w-full">
+            <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between bg-gray-900/98 z-10">
               <span className="text-sm font-extrabold text-blue-300">{pharmaciesView.length} ECZANE</span>
-              <select value={sortType} onChange={(e) => setSortType(e.target.value)} className="bg-gray-800 border border-gray-700 rounded-lg text-gray-300 text-[10px] px-2 py-1.5 outline-none font-bold">
+              <select value={sortType} onChange={(e) => setSortType(e.target.value)} className="bg-gray-800 border border-gray-700 rounded-lg text-gray-300 text-[10px] px-2 py-1.5 font-bold outline-none">
                 <option value="distance">MESAFEYE GÖRE</option>
                 <option value="name">A'DAN Z'YE</option>
               </select>
             </div>
             <div className="flex-1 overflow-y-auto p-2 pb-10 w-full scroll-smooth">
               {pharmaciesView.map((p) => (
-                <div id={"card-" + p.id} key={p.id} className="w-full">
-                  <PharmacyCard p={p} active={activeId === p.id} travelMode={travelModes[p.id] || "walk"} userVote={userVotes[p.id]} userLocation={userLocation} onSelect={handleSelect} onTravelChange={(mode) => setTravelModes(t => ({ ...t, [p.id]: mode }))} onVote={(type) => handleVote(p.id, type)} onToast={showToast} />
+                <div id={"card-" + p.id} key={p.id}>
+                  <PharmacyCard 
+                    p={p} 
+                    active={activeId === p.id} 
+                    globalVotes={globalVotes} // 👈 CANLI OYLAR BURAYA GİDİYOR
+                    travelMode={travelModes[p.id] || "walk"} 
+                    userVote={userVotes[p.id]} 
+                    userLocation={userLocation} 
+                    onSelect={handleSelect} 
+                    onTravelChange={(mode) => setTravelModes(t => ({ ...t, [p.id]: mode }))} 
+                    onVote={(type) => handleVote(p.id, type)} 
+                    onToast={showToast} 
+                  />
                 </div>
               ))}
-              {pharmaciesView.length === 0 && !loadingPharmacies && <div className="p-10 text-center text-gray-500 text-xs">Aradığınız bölgede nöbetçi bulunamadı.</div>}
+              {pharmaciesView.length === 0 && !loadingPharmacies && <div className="p-10 text-center text-gray-500 text-xs">Nöbetçi bulunamadı.</div>}
             </div>
           </div>
         )}
